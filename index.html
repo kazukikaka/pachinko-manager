@@ -122,12 +122,48 @@ nav button[data-page="sessionsPage"]{color:#565b78!important}
 @keyframes pageFade{from{opacity:.6;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.page{animation:none}}
 @media(max-width:480px){#home .hero-panel{min-height:365px}header small{max-width:90px}body:not(:has(#auth:not(.hidden))) header{gap:8px}}
-</style></head><body>
+</style>
+<style id="readability-v5">
+/* Readability and typographic hierarchy — no data or calculation changes */
+:root{--ink:#252b3c;--sub:#586174;--line:#d7d6dd}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif!important;font-size:15px;line-height:1.65;color:var(--ink)}
+body:not(:has(#auth:not(.hidden))) header{display:flex;flex-wrap:wrap;align-items:center;column-gap:14px;row-gap:4px;padding:18px 16px 22px!important}
+header small{font-size:10px!important;letter-spacing:.12em!important;line-height:1.5!important;max-width:90px!important;flex:0 0 90px}
+header h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif!important;font-size:clamp(20px,5.3vw,26px)!important;letter-spacing:.015em!important;line-height:1.3!important;overflow-wrap:normal;word-break:keep-all;min-width:0!important;flex:1!important;margin:0!important}
+.card{padding:20px 17px!important;margin-bottom:17px!important}
+.card h2{font-size:21px!important;line-height:1.45!important;letter-spacing:.015em!important;margin-bottom:17px!important}
+.card h3{font-size:17px;line-height:1.5}
+label{font-size:13px!important;font-weight:700!important;line-height:1.5;margin-top:13px!important;margin-bottom:7px!important}
+.muted,.scope .muted{font-size:13px!important;line-height:1.65!important;color:#626c7b!important}
+input,select,textarea{font-size:16px!important;min-height:47px!important;padding:11px 12px!important}
+.metric small{font-size:12px!important;color:#586174!important}
+.metric strong{font-size:clamp(19px,5vw,24px)!important;line-height:1.3!important;letter-spacing:0!important;font-variant-numeric:tabular-nums}
+.scope{padding:15px!important;margin-bottom:16px!important}
+/* Separate portrait and readable text: no letters over the face */
+#home .hero-panel{display:flex!important;justify-content:flex-end!important;align-items:stretch!important;min-height:0!important;padding:248px 20px 22px!important;border-radius:20px!important;gap:0!important}
+#home .hero-panel:before{inset:0!important;background-image:linear-gradient(to bottom,rgba(249,247,249,.02) 0%,rgba(249,247,249,.04) 28%,rgba(246,243,247,.52) 42%,rgba(246,243,247,.96) 56%,#f6f3f7 75%),var(--navigator-art)!important;background-size:cover,cover!important;background-position:center,center 26%!important;filter:saturate(.76)!important}
+#home .hero-panel:after{content:"✦  NAVIGATOR"!important;top:16px!important;left:20px!important;font-size:10px!important;letter-spacing:.16em!important;color:#44465d!important}
+#home .hero-eyebrow{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif!important;font-size:11px!important;letter-spacing:.075em!important;font-weight:750!important;color:#4e5268!important;margin:0 0 7px!important;text-shadow:none!important}
+#home .hero-title{font-size:clamp(23px,6vw,29px)!important;line-height:1.43!important;letter-spacing:.015em!important;font-weight:700!important;margin:0 0 10px!important;color:#242a3e!important;text-shadow:none!important}
+#home .hero-title em{color:#575374!important}
+#home .hero-panel p{font-size:13px!important;line-height:1.65!important;color:#363a4b!important;background:none!important;padding:0!important;margin:0 0 20px!important;max-width:28em}
+#home .hero-cta{min-height:57px!important;padding:14px 15px!important;font-size:15px!important;line-height:1.5!important;font-weight:750!important;letter-spacing:0!important;display:block!important;text-align:left!important}
+#home .hero-cta span{font-size:20px!important}
+nav{padding:7px 6px calc(8px + env(safe-area-inset-bottom))!important}
+nav button{font-size:11px!important;font-weight:750!important;min-height:58px!important;line-height:1.35!important;padding:6px 2px!important}
+nav span{display:grid!important;place-items:center!important;height:28px!important;margin:0 auto 5px!important}
+nav span svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+nav button[data-page="sessionsPage"] span{width:39px!important;height:39px!important;margin:-10px auto 4px!important}
+nav button[data-page="sessionsPage"] svg{width:25px;height:25px;stroke-width:2.2}
+.stats-menu button b{font-size:15px!important}
+@media(max-width:380px){#home .hero-panel{padding-top:215px!important}#home .hero-title{font-size:23px!important}header small{flex-basis:76px!important;max-width:76px!important}}
+</style>
+</head><body>
 <header><small>RECORD · GROUP · ANALYSIS</small><h1>パチンコ稼働管理</h1><div class="muted">Your play, our records.</div></header>
 <div id="globalStatus" class="status topstatus"></div>
 <section id="auth" class="card auth auth-illustrated"><div class="login-art" aria-hidden="true"></div><div class="login-brand"><small>PLAY RECORD / NAVIGATOR</small><strong>パチンコ稼働管理</strong></div><div class="login-card"><h2>WELCOME BACK</h2><p class="login-subtitle">あなたの記録を、未来につなぐ。</p><label for="email">メールアドレス</label><input id="email" type="email" autocomplete="email" placeholder="mail@example.com"><label for="password">パスワード</label><input id="password" type="password" autocomplete="current-password" placeholder="パスワードを入力"><button id="login">ログイン</button><button id="signup" class="secondary">新規登録</button></div><p class="login-footer">RECORD YOUR PLAY · READ YOUR FUTURE</p></section>
 <main id="app" class="hidden"><div class="scope"><label style="margin-top:0">表示・保存するデータ</label><select id="scope"><option value="personal">個人データ</option></select><div id="scopeDescription" class="muted"></div></div>
-<section id="home" class="page"><div class="hero-panel"><div class="hero-eyebrow">MISSION CONTROL / PLAY LOG</div><div class="hero-title">今日の稼働を、<br><em>もっとスマートに。</em></div><p>必要回転率をシミュレーションしてから稼働を始めよう。</p><button id="homeBeforeShortcut" type="button" class="hero-cta">◎ 稼働前シミュレーターへ <span>↗</span></button></div><div class="card"><h2>収支・期待値</h2><label>表示対象</label><select id="homeMember"></select><div id="homeSummary"></div></div><div class="card"><h2>稼働履歴</h2><div id="history"></div></div></section>
+<section id="home" class="page"><div class="hero-panel"><div class="hero-eyebrow">PLAY SUPPORT / 稼働サポート</div><div class="hero-title">今日の稼働を、<br><em>もっとスマートに。</em></div><p>必要回転率を確認して、稼働を始めましょう。</p><button id="homeBeforeShortcut" type="button" class="hero-cta">◎ 稼働前シミュレーターへ <span>↗</span></button></div><div class="card"><h2>収支・期待値</h2><label>表示対象</label><select id="homeMember"></select><div id="homeSummary"></div></div><div class="card"><h2>稼働履歴</h2><div id="history"></div></div></section>
 <section id="machinesPage" class="page hidden"><div class="card"><h2 id="machineHeading">機種登録</h2><label>シリーズ・作品</label><input id="machineSeries" list="seriesSuggestions" placeholder="エヴァンゲリオン、東京喰種など"><datalist id="seriesSuggestions"></datalist><label>機種名</label><input id="machineName"><label>メーカー</label><input id="machineMaker"><label>初当たり確率の分母</label><input id="machineProbability" type="number" min=".001" step="any"><label>平均TY（純増差玉）</label><input id="machineTy" type="number" min=".001" step="any"><p id="machineBorder" class="muted">理論ボーダー：—</p><button id="saveMachine">機種を保存</button><button id="cancelMachine" class="secondary hidden">編集を中止</button><div id="machineStatus" class="status"></div></div><div class="card"><h2>機種一覧</h2><label>シリーズで絞り込み</label><select id="machineFilter"></select><div id="machineList"></div></div></section>
 <section id="storesPage" class="page hidden"><div class="card"><h2 id="storeHeading">店舗登録</h2><label>店舗名</label><input id="storeName"><div id="rateEditors"></div><button id="addRate" class="secondary">＋ 貸玉レート追加</button><button id="saveStore">店舗を保存</button><button id="cancelStore" class="secondary hidden">編集を中止</button><div id="storeStatus" class="status"></div></div><div class="card"><h2>店舗一覧</h2><div id="storeList"></div></div></section>
 <section id="beforePage" class="page hidden"><div class="card"><h2>稼働前・必要回転率</h2><label>店舗</label><select id="beforeGroup"></select><label>貸玉レート</label><select id="beforeRate"></select><label>シリーズ</label><select id="beforeSeries"></select><label>機種</label><select id="beforeMachine"></select><label>稼働時間（時間）</label><input id="beforeHours" type="number" value="8" step=".5"><label>通常時の消化速度（回/時）</label><input id="beforeSpeed" type="number" value="200" step="any"><label>初当たり1回あたりの平均消化時間（分）</label><input id="beforeHitMinutes" type="number" value="20" step="any"><label>投資方法</label><select id="beforeFunding"><option value="cash">現金</option><option value="replay">貯玉再プレイのみ</option><option value="mixed">貯玉＋現金</option></select><div id="beforeReplayWrap" class="hidden"><label>今回使用できる貯玉（玉）</label><input id="beforeReplayAvailable" type="number" value="2280"></div><label>稼働開始時の持ち玉（玉）</label><input id="beforeHeld" type="number" value="0"><label>目標期待値（円）</label><input id="beforeTarget" type="number" value="10000"><button id="calculateBefore">必要回転率を計算</button><div id="beforeResult"></div></div></section>
@@ -161,7 +197,7 @@ nav button[data-page="sessionsPage"]{color:#565b78!important}
 <button class="menu-entry" type="button" data-go="groupsPage">グループ共有 <span>招待・移行 ›</span></button>
 <button class="menu-entry" type="button" data-go="settingsPage">データ・アカウント <span>バックアップ・ログアウト ›</span></button>
 </div></section>
-<nav><button data-page="home"><span>⌂</span>ホーム</button><button data-page="searchPage"><span>⌕</span>探す</button><button data-page="sessionsPage"><span>＋</span>入力</button><button data-page="statsPage"><span>▥</span>分析</button><button data-page="menuPage"><span>☷</span>管理</button></nav></main>
+<nav><button data-page="home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span>ホーム</button><button data-page="searchPage"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></span>探す</button><button data-page="sessionsPage"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg></span>入力</button><button data-page="statsPage"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-9M22 20V8"/></svg></span>分析</button><button data-page="menuPage"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>管理</button></nav></main>
 <script type="module">
 import{createClient}from"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const db=createClient("https://ezhhldztqloffumweklk.supabase.co","sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF");
