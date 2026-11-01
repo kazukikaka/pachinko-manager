@@ -8,18 +8,20 @@
 <title>パチンコ稼働管理 v8</title>
 <style>
 :root {
-  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,
+    "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
   color-scheme:dark;
 }
 * { box-sizing:border-box; }
 body {
   margin:0;
+  padding:18px 15px 105px;
   background:#101827;
   color:#f4f6fa;
-  padding:18px 16px 100px;
 }
-h1 { font-size:23px; margin:12px 0 24px; }
-h2 { font-size:18px; margin:0 0 12px; }
+h1 { font-size:22px; margin:10px 0 22px; }
+h2 { font-size:18px; margin:0 0 14px; }
+h3 { font-size:15px; margin:14px 0 8px; }
 .card {
   background:#1d293b;
   border:1px solid #344256;
@@ -30,46 +32,50 @@ h2 { font-size:18px; margin:0 0 12px; }
 input,select,textarea,button {
   font:inherit;
   width:100%;
-  padding:12px;
-  margin:6px 0 12px;
+  padding:11px;
+  margin:5px 0 12px;
   border-radius:10px;
   border:1px solid #45566e;
   background:#111c2d;
-  color:white;
+  color:#fff;
 }
 button {
   background:#3976dc;
   border:0;
   font-weight:600;
+  cursor:pointer;
 }
 button.secondary { background:#344256; }
 button.danger { background:#a93e48; }
-button:disabled { opacity:.5; }
+button:disabled { opacity:.5; cursor:not-allowed; }
 label {
   display:block;
   color:#b9c6d9;
   font-size:13px;
-  margin-top:8px;
+  margin-top:9px;
 }
 nav {
   position:fixed;
   bottom:0;
   left:0;
   right:0;
+  z-index:10;
   background:#1d293b;
   display:flex;
   gap:4px;
   padding:10px;
-  z-index:10;
+  overflow-x:auto;
 }
 nav button {
-  font-size:12px;
+  flex:1;
+  min-width:43px;
+  font-size:11px;
   padding:12px 2px;
   margin:0;
 }
 .hidden { display:none!important; }
 small,.muted { color:#a9b8cb; }
-.stat { font-size:26px; font-weight:700; }
+.stat { font-size:27px; font-weight:700; }
 .item {
   border-bottom:1px solid #45566e;
   padding:12px 0;
@@ -82,16 +88,31 @@ small,.muted { color:#a9b8cb; }
 .negative { color:#ff9b9b; }
 .notice {
   font-size:12px;
-  line-height:1.6;
+  line-height:1.7;
   color:#bdc9db;
 }
-.pill {
+.warning {
+  border-left:3px solid #e5ba65;
+  padding:10px;
+  background:#293143;
+  margin:10px 0;
+  font-size:13px;
+  line-height:1.6;
+}
+.rate-card {
+  border:1px solid #52657e;
+  border-radius:12px;
+  padding:13px;
+  margin:12px 0;
+}
+.rate-card h3 { margin-top:0; }
+.rate-tag {
   display:inline-block;
-  background:#33445e;
-  padding:4px 8px;
-  border-radius:8px;
+  border:1px solid #6687b7;
+  border-radius:7px;
+  padding:3px 8px;
   font-size:12px;
-  margin:4px 4px 4px 0;
+  color:#d5e6ff;
 }
 #message {
   min-height:20px;
@@ -103,22 +124,6 @@ canvas {
   height:180px;
   display:block;
 }
-summary { cursor:pointer; padding:8px 0; }
-.rate-tag {
-  display:inline-block;
-  border:1px solid #6687b7;
-  border-radius:7px;
-  padding:3px 8px;
-  font-size:12px;
-  color:#d5e6ff;
-}
-.warning {
-  border-left:3px solid #e5ba65;
-  padding:10px;
-  background:#293143;
-  margin:10px 0;
-  font-size:13px;
-}
 </style>
 </head>
 <body>
@@ -128,10 +133,11 @@ summary { cursor:pointer; padding:8px 0; }
 
 <section id="auth" class="card">
   <h2>ログイン</h2>
-  <label>メールアドレス</label>
+  <label for="email">メールアドレス</label>
   <input id="email" type="email" autocomplete="email">
-  <label>パスワード</label>
-  <input id="password" type="password" autocomplete="current-password">
+  <label for="password">パスワード</label>
+  <input id="password" type="password"
+    autocomplete="current-password">
   <button id="login">ログイン</button>
   <button id="signup" class="secondary">新規登録</button>
   <small>新規登録後、確認メールを開いてください。</small>
@@ -139,10 +145,11 @@ summary { cursor:pointer; padding:8px 0; }
 
 <div id="app" class="hidden">
 
+<!-- ホーム -->
 <section id="home">
   <div class="card">
     <h2>今月の収支</h2>
-    <label>表示する貸玉レート</label>
+    <label for="homeRateFilter">貸玉レート</label>
     <select id="homeRateFilter">
       <option value="all">全レート合計</option>
       <option value="4">4パチ</option>
@@ -152,225 +159,272 @@ summary { cursor:pointer; padding:8px 0; }
     <div class="stat" id="monthly">¥0</div>
     <div class="muted" id="monthCount"></div>
     <div class="item">
-      今月の登録期待値：
-      <b id="monthlyEv">未登録</b>
+      登録期待値：<b id="monthlyEv">—</b>
     </div>
     <div>
-      今月の欠損・余剰：
-      <b id="monthlyDiff">—</b>
+      欠損・余剰：<b id="monthlyDiff">—</b>
     </div>
-    <small>収支は円単位で集計します。異なる貸玉レートの玉数は合算しません。</small>
+    <small>
+      全レート合計は円換算した収支です。
+      4パチと1パチの玉数は合算しません。
+    </small>
   </div>
-
   <div class="card">
     <h2>稼働履歴</h2>
     <div id="history"></div>
   </div>
 </section>
 
+<!-- 機種 -->
 <section id="machinesPage" class="hidden">
   <div class="card">
     <h2 id="machineFormTitle">機種登録</h2>
-    <label>機種名</label>
-    <input id="machineName">
-    <label>メーカー</label>
+
+    <label for="machineName">機種名</label>
+    <input id="machineName" placeholder="例：e〇〇〇">
+
+    <label for="maker">メーカー</label>
     <input id="maker">
-    <label>ボーダー（250玉あたり）</label>
-    <input id="border" type="number" min="0" step="0.01">
+
+    <label for="jackpotDenominator">
+      通常時の大当たり確率（分母）
+    </label>
+    <input id="jackpotDenominator"
+      type="number" min="0.0001" step="0.0001"
+      placeholder="例：319.7">
+
+    <label for="averageTy">
+      初当たり1回あたりの平均獲得出玉・TY（玉）
+    </label>
+    <input id="averageTy"
+      type="number" min="0.0001" step="0.01"
+      placeholder="例：4500">
+
+    <div class="notice">
+      初当たりから連チャン終了までを含む平均出玉を入力します。
+      技術介入による補正は行いません。
+    </div>
+
+    <div class="rate-card">
+      <h3>自動計算ボーダー</h3>
+      <div class="stat" id="machineBorderPreview">—</div>
+      <div class="notice">
+        250玉あたりの等価交換理論ボーダー。
+        計算式：250 × 大当たり確率の分母 ÷ TY。
+        TYは計算に適合する正味獲得出玉を前提とします。
+      </div>
+    </div>
+
     <button id="saveMachine">機種を登録</button>
     <button id="cancelMachine" class="secondary hidden">
       編集をキャンセル
     </button>
   </div>
+
   <div class="card">
     <h2>登録済み機種</h2>
     <div id="machineList"></div>
   </div>
 </section>
 
+<!-- 店舗 -->
 <section id="storesPage" class="hidden">
   <div class="card">
-    <h2 id="storeFormTitle">店舗・貸玉レート設定</h2>
+    <h2 id="storeFormTitle">店舗登録</h2>
 
-    <label>店舗名</label>
-    <input id="storeName" placeholder="例：〇〇店">
+    <label for="storeName">店舗名</label>
+    <input id="storeName" placeholder="例：マルハン〇〇店">
 
-    <label>貸玉レート</label>
-    <select id="storePlayRate">
-      <option value="4">4パチ（4円／玉）</option>
-      <option value="1">1パチ（1円／玉）</option>
-      <option value="other">その他・カスタム</option>
-    </select>
+    <div class="rate-card">
+      <h3>4パチ設定</h3>
+      <label>
+        <input id="enable4" type="checkbox" checked
+          style="width:auto;margin-right:8px">
+        4パチを取り扱う
+      </label>
 
-    <div id="customRateFields" class="hidden">
-      <label>カスタム貸玉単価（円／玉）</label>
-      <input id="customPlayRate" type="number"
-        min="0.0001" step="0.0001"
-        placeholder="例：0.5">
+      <div id="rate4Fields">
+        <label for="exchange4">
+          交換率（100円相当の景品に必要な玉数）
+        </label>
+        <input id="exchange4" type="number"
+          min="0.0001" step="0.0001" value="25">
+        <div id="exchange4Preview" class="notice"></div>
+
+        <label for="limit4">再プレイ上限（玉／日）</label>
+        <input id="limit4" type="number" min="0" step="1"
+          placeholder="空欄なら無制限">
+
+        <label for="fee4">再プレイ手数料（玉）</label>
+        <input id="fee4" type="number" min="0" step="1"
+          value="0">
+
+        <label for="opening4">管理開始時の貯玉残高（玉）</label>
+        <input id="opening4" type="number" min="0" step="1"
+          value="0">
+      </div>
     </div>
 
-    <label>実際の貸玉単価（円／玉）</label>
-    <input id="storePurchase" type="number"
-      step="0.0001" min="0.0001" value="4">
+    <div class="rate-card">
+      <h3>1パチ設定</h3>
+      <label>
+        <input id="enable1" type="checkbox" checked
+          style="width:auto;margin-right:8px">
+        1パチを取り扱う
+      </label>
 
-    <label>交換率（100円相当の景品に必要な玉数）</label>
-    <input id="storeExchangeUnits" type="number"
-      step="0.0001" min="0.0001"
-      value="25" inputmode="decimal">
+      <div id="rate1Fields">
+        <label for="exchange1">
+          交換率（100円相当の景品に必要な玉数）
+        </label>
+        <input id="exchange1" type="number"
+          min="0.0001" step="0.0001" value="100">
+        <div id="exchange1Preview" class="notice"></div>
 
-    <div id="storeExchangePreview" class="notice">
-      25玉交換 → 4円／玉
-    </div>
+        <label for="limit1">再プレイ上限（玉／日）</label>
+        <input id="limit1" type="number" min="0" step="1"
+          placeholder="空欄なら無制限">
 
-    <label>再プレイ上限（玉／日、無制限なら空欄）</label>
-    <input id="storeLimit" type="number" step="1" min="0">
+        <label for="fee1">再プレイ手数料（玉）</label>
+        <input id="fee1" type="number" min="0" step="1"
+          value="0">
 
-    <label>再プレイ手数料（玉数、なしなら0）</label>
-    <input id="storeFee" type="number"
-      step="1" min="0" value="0">
-
-    <label>管理開始時の貯玉残高（玉）</label>
-    <input id="storeOpening" type="number"
-      step="1" min="0" value="0">
-
-    <div class="notice">
-      同じ店舗名でも、4パチと1パチは別々の設定として管理します。
-      交換率・再プレイ上限・手数料・貯玉残高も独立します。
+        <label for="opening1">管理開始時の貯玉残高（玉）</label>
+        <input id="opening1" type="number" min="0" step="1"
+          value="0">
+      </div>
     </div>
 
     <div class="warning">
-      既存の店舗設定を変更する場合は、過去の稼働記録との対応を確認してください。
-      既存の貯玉を自動で別レートへ移動することはありません。
+      既存の店舗・レート設定を紐づけて管理します。
+      過去の稼働履歴があるレートは、設定を無効化しても
+      自動削除しません。
     </div>
 
-    <button id="saveStore">店舗・レート設定を保存</button>
+    <button id="saveStore">店舗をまとめて保存</button>
     <button id="cancelStore" class="secondary hidden">
-      編集キャンセル
+      編集をキャンセル
     </button>
   </div>
 
   <div class="card">
-    <h2>店舗・レート別貯玉残高</h2>
+    <h2>店舗・貯玉残高</h2>
     <div id="storeList"></div>
   </div>
 </section>
 
+<!-- 稼働入力 -->
 <section id="sessionsPage" class="hidden">
   <div class="card">
     <h2 id="sessionFormTitle">稼働記録を追加</h2>
 
-    <label>稼働日</label>
+    <label for="date">稼働日</label>
     <input id="date" type="date">
 
-    <label>機種</label>
-    <select id="machineSelect"></select>
+    <label for="storeGroupSelect">店舗</label>
+    <select id="storeGroupSelect"></select>
 
-    <label>店舗・貸玉レート</label>
-    <select id="storeSelect"></select>
+    <label for="playRateSelect">貸玉レート</label>
+    <select id="playRateSelect">
+      <option value="4">4パチ</option>
+      <option value="1">1パチ</option>
+    </select>
+
+    <label for="machineSelect">機種</label>
+    <select id="machineSelect"></select>
 
     <div id="storeTerms" class="notice"></div>
 
-    <div class="warning" id="sessionRateNotice">
-      選択した店舗・貸玉レートに対応する貯玉残高を使用します。
+    <div class="rate-card">
+      <h3>自動計算ボーダー</h3>
+      <div class="stat" id="sessionBorderPreview">—</div>
+      <div class="notice">
+        等価交換の理論ボーダーです。
+        非等価交換時の現金・持ち玉条件は
+        期待値計算側で別途評価します。
+      </div>
     </div>
 
-    <label>現金投資（円）</label>
-    <input id="cash" type="number"
-      min="0" step="1" value="0">
+    <label for="cash">現金投資（円）</label>
+    <input id="cash" type="number" min="0" step="1" value="0">
 
-    <label>貯玉再プレイで引き出した玉数</label>
+    <label for="savedBalls">貯玉再プレイで引き出した玉数</label>
     <input id="savedBalls" type="number"
       min="0" step="1" value="0">
 
-    <label>終了時の総獲得玉数（貯玉＋換金分）</label>
+    <label for="ballsOut">終了時の総獲得玉数</label>
     <input id="ballsOut" type="number"
       min="0" step="1" value="0">
 
-    <label>終了時に貯玉した玉数</label>
+    <label for="deposited">終了時に貯玉した玉数</label>
     <input id="deposited" type="number"
       min="0" step="1" value="0">
 
-    <label>換金額（円・自動計算／手動修正可能）</label>
+    <label for="cashReturned">換金額（円）</label>
     <input id="cashReturned" type="number"
       min="0" step="1" value="0">
+    <div id="exchangePreview" class="notice"></div>
 
-    <div id="exchangePreview" class="notice">
-      総獲得玉数と貯玉数から換金額を自動計算します。
-    </div>
-
-    <label>再プレイ手数料として減った玉数</label>
+    <label for="feeBalls">再プレイ手数料として減った玉数</label>
     <input id="feeBalls" type="number"
       min="0" step="1" value="0">
 
     <div id="balancePreview" class="notice"></div>
 
-    <label>通常回転に使った玉数（任意）</label>
+    <label for="ballsIn">通常回転に使った玉数</label>
     <input id="ballsIn" type="number"
       min="0" step="1" value="0">
 
-    <label>通常回転数</label>
+    <label for="spins">通常回転数</label>
     <input id="spins" type="number"
       min="0" step="1" value="0">
 
-    <label>交換単価（円／玉）</label>
-    <input id="rate" type="number"
-      min="0.0001" step="0.0001" value="4">
+    <div class="rate-card">
+      <h3>回転率</h3>
+      <div class="stat" id="rotationPreview">—</div>
+      <small>250玉あたりの通常回転数</small>
+    </div>
 
-    <label>現金購入単価（円／玉）</label>
-    <input id="purchaseRate" type="number"
-      min="0.0001" step="0.0001" value="4">
-
-    <label>実収支の直接入力（円・任意）</label>
+    <label for="manualProfit">実収支の直接入力（任意・円）</label>
     <input id="manualProfit" type="number"
       step="1" placeholder="空欄なら自動計算">
 
-    <label>期待値の登録方式</label>
+    <label for="evMode">期待値の登録方式</label>
     <select id="evMode">
-      <option value="none">未登録</option>
-      <option value="manual">手動入力</option>
-      <option value="auto">簡易式で自動計算（参考値）</option>
+      <option value="auto">TYから自動計算</option>
+      <option value="manual">期待値を手動入力</option>
+      <option value="none">期待値未登録</option>
     </select>
 
     <div id="manualEvFields" class="hidden">
-      <label>稼働期待値（円・マイナスも可）</label>
+      <label for="sessionEv">期待値（円）</label>
       <input id="sessionEv" type="number" step="1">
 
-      <label>期待値の算出根拠・出典</label>
-      <textarea id="evSource"
-        placeholder="計算サイト、条件、計算日など"></textarea>
+      <label for="evSource">期待値の算出根拠</label>
+      <textarea id="evSource"></textarea>
     </div>
 
-    <div id="autoEvFields" class="hidden">
-      <label>ボーダー（250玉あたり）</label>
-      <input id="autoBorder" type="number"
-        min="0.01" step="0.01">
-
-      <label>玉の評価単価（円／玉）</label>
-      <input id="autoRate" type="number"
-        min="0.0001" step="0.0001" value="4">
-
-      <small>
-        選択した店舗の交換単価を初期値として使用します。
-        簡易差分式の参考値であり、正式な期待値ではありません。
-      </small>
+    <div id="autoEvFields">
+      <div class="notice">
+        機種のTY・大当たり確率、通常回転率、
+        現金投資・貯玉使用、店舗交換率から
+        参考期待値を算出します。
+        持ち玉使用の詳細が不足する場合は
+        計算条件と限界を表示します。
+      </div>
     </div>
 
-    <div id="evPreview" class="notice"></div>
+    <div class="rate-card">
+      <h3>期待値</h3>
+      <div class="stat" id="evPreview">—</div>
+      <div id="evDetails" class="notice"></div>
+    </div>
 
-    <label>メモ</label>
+    <label for="notes">メモ</label>
     <textarea id="notes"></textarea>
 
-    <div class="notice">
-      評価収支＝現金回収−現金投資＋
-      （貯玉追加−貯玉使用−再プレイ手数料玉数）
-      ×稼働時交換単価。
-      貯玉は選択した店舗・貸玉レート単位で管理します。
-    </div>
-
-    <button id="saveSession">記録を保存</button>
-    <div id="saveSessionStatus"
-      role="alert" class="notice"
-      style="white-space:pre-wrap"></div>
+    <button id="saveSession">稼働記録を保存</button>
+    <div id="saveSessionStatus" role="alert" class="notice"></div>
 
     <button id="cancelSession" class="secondary hidden">
       編集をキャンセル
@@ -378,45 +432,40 @@ summary { cursor:pointer; padding:8px 0; }
   </div>
 </section>
 
+<!-- 分析 -->
 <section id="statsPage" class="hidden">
   <div class="card">
     <h2>収支分析</h2>
 
-    <label>対象月</label>
+    <label for="statsMonth">対象月</label>
     <input id="statsMonth" type="month">
-
     <button id="allMonths" class="secondary mini">
       全期間を表示
     </button>
 
-    <label>貸玉レート</label>
+    <label for="statsRateFilter">貸玉レート</label>
     <select id="statsRateFilter">
       <option value="all">全レート合計</option>
-      <option value="4">4パチのみ</option>
-      <option value="1">1パチのみ</option>
-      <option value="unknown">未分類のみ</option>
+      <option value="4">4パチ</option>
+      <option value="1">1パチ</option>
+      <option value="unknown">未分類</option>
     </select>
 
     <div class="stat" id="statsTotal">¥0</div>
     <div id="statsSummary" class="muted"></div>
 
     <div class="item">
-      登録期待値：
-      <b id="statsEv">—</b>
+      登録期待値：<b id="statsEv">—</b>
     </div>
-
     <div>
-      欠損・余剰：
-      <b id="statsDiff">—</b>
+      欠損・余剰：<b id="statsDiff">—</b>
     </div>
-
     <small id="statsCoverage"></small>
 
-    <h2 style="margin-top:18px">
-      累積実収支と累積期待値
-    </h2>
-
+    <h3>累積実収支・期待値</h3>
     <canvas id="cumulativeChart" height="210"></canvas>
+
+    <h3>月別収支</h3>
     <canvas id="profitChart" height="180"></canvas>
   </div>
 
@@ -424,54 +473,43 @@ summary { cursor:pointer; padding:8px 0; }
     <h2>月別</h2>
     <div id="byMonth"></div>
   </div>
-
   <div class="card">
-    <h2>店舗・貸玉レート別</h2>
+    <h2>店舗・レート別</h2>
     <div id="byStore"></div>
   </div>
-
   <div class="card">
     <h2>機種別</h2>
     <div id="byMachine"></div>
   </div>
 </section>
 
+<!-- 期待値シミュレーション -->
 <section id="evPage" class="hidden">
   <div class="card">
-    <h2>簡易期待値シミュレーション</h2>
+    <h2>期待値シミュレーション</h2>
 
-    <div class="notice">
-      ボーダー・実測回転率からの差分試算です。
-      大当たり出玉、振分、LT、電サポ中の増減、
-      持ち玉比率などを完全には反映しません。
-      正式な期待値ではありません。
-    </div>
-
-    <label>対象機種</label>
+    <label for="evMachine">機種</label>
     <select id="evMachine"></select>
 
-    <label>ボーダー（250玉あたり）</label>
-    <input id="evBorder" type="number"
-      min="0.01" step="0.01">
-
-    <label>実測回転率（250玉あたり）</label>
+    <label for="evRotation">回転率（250玉あたり）</label>
     <input id="evRotation" type="number"
-      min="0.01" step="0.01">
+      min="0.0001" step="0.01">
 
-    <label>通常回転数</label>
-    <input id="evSpins" type="number"
-      min="0" step="1">
+    <label for="evSpins">通常回転数</label>
+    <input id="evSpins" type="number" min="0" step="1">
 
-    <label>玉の評価単価（円／玉）</label>
+    <label for="evRate">玉評価単価（円／玉）</label>
     <input id="evRate" type="number"
       min="0.0001" step="0.0001" value="4">
 
-    <button id="calculateEv">参考試算</button>
+    <button id="calculateEv">期待値を試算</button>
+
     <div class="stat" id="evResult">—</div>
-    <div id="evDetails" class="notice"></div>
+    <div id="evSimulationDetails" class="notice"></div>
   </div>
 </section>
 
+<!-- 設定 -->
 <section id="settingsPage" class="hidden">
   <div class="card">
     <h2>アカウント</h2>
@@ -480,13 +518,12 @@ summary { cursor:pointer; padding:8px 0; }
     <button id="export" class="secondary">
       JSONバックアップ
     </button>
-
     <button id="exportCsv" class="secondary">
       稼働記録をCSV出力
     </button>
 
     <small>
-      JSONの復元機能は未実装です。
+      バックアップの復元機能は未実装です。
     </small>
 
     <button id="logout" class="danger">
@@ -508,20 +545,33 @@ summary { cursor:pointer; padding:8px 0; }
 </div>
 
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const db = createClient(
-  "https://ezhhldztqloffumweklk.supabase.co",
-  "sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF"
-);
+const SUPABASE_URL =
+  "https://ezhhldztqloffumweklk.supabase.co";
+const SUPABASE_KEY =
+  "sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF";
 
-const el = id => document.getElementById(id);
-const num = id => Number(el(id).value) || 0;
-const money = value => {
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+const number = id => Number($(id).value);
+const val = id => $(id).value.trim();
+const yen = value => {
   const n = Number(value) || 0;
   return (n < 0 ? "-¥" : "¥") +
     Math.round(Math.abs(n)).toLocaleString("ja-JP");
 };
+const escapeHtml = value => String(value ?? "")
+  .replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+
 const today = () => {
   const d = new Date();
   return [
@@ -530,113 +580,93 @@ const today = () => {
     String(d.getDate()).padStart(2, "0")
   ].join("-");
 };
-const safe = value => String(value ?? "").replace(
-  /[&<>"']/g,
-  c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[c]
-);
 
 let user = null;
 let machines = [];
+let storeGroups = [];
 let stores = [];
 let sessions = [];
+
 let editingMachine = null;
-let editingStore = null;
+let editingStoreGroup = null;
 let editingSession = null;
 let busy = false;
 
-function msg(value) {
-  el("message").textContent = value || "";
+function message(text) {
+  $("message").textContent = text || "";
 }
 
-function fail(error) {
-  msg(error?.message || String(error) || "処理に失敗しました");
+function errorMessage(error) {
+  message(error?.message || String(error));
 }
 
-function rateOfStore(store) {
-  if (!store) return null;
-  const rate = Number(store.play_rate_yen);
-  if (Number.isFinite(rate) && rate > 0) return rate;
-  return null;
-}
-
-function rateLabel(rate) {
-  if (rate === null || rate === undefined) return "未分類";
+function rateName(rate) {
   if (Number(rate) === 4) return "4パチ";
   if (Number(rate) === 1) return "1パチ";
-  return `${Number(rate)}円パチ`;
+  return "未分類";
 }
 
-function storeLabel(store) {
-  return `${store.name} / ${rateLabel(rateOfStore(store))}`;
+function machineBorder(machine) {
+  const denominator = Number(machine?.jackpot_denominator);
+  const ty = Number(machine?.average_ty_balls);
+
+  if (!(denominator > 0 && ty > 0)) return null;
+
+  return 250 * denominator / ty;
 }
 
-function selectedStore() {
-  return stores.find(s => s.id === el("storeSelect").value) || null;
+function theoreticalExpectedBalls(machine, spins) {
+  const denominator = Number(machine?.jackpot_denominator);
+  const ty = Number(machine?.average_ty_balls);
+
+  if (!(denominator > 0 && ty > 0 && spins >= 0)) {
+    return null;
+  }
+
+  return spins / denominator * ty;
 }
 
-function sessionStore(session) {
-  const id = session.details?.store_id;
+function machineById(id) {
+  return machines.find(m => m.id === id) || null;
+}
+
+function storeById(id) {
   return stores.find(s => s.id === id) || null;
 }
 
-function sessionRate(session) {
-  const snapshot = session.details?.play_rate_yen;
-  if (snapshot !== null && snapshot !== undefined && snapshot !== "") {
-    const n = Number(snapshot);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
+function groupById(id) {
+  return storeGroups.find(g => g.id === id) || null;
+}
 
-  // 旧記録は、店舗のレートが確定している場合だけ分類する。
-  return rateOfStore(sessionStore(session));
+function storeRate(store) {
+  const rate = Number(store?.play_rate_yen);
+  return rate === 1 || rate === 4 ? rate : null;
+}
+
+function sessionRate(session) {
+  const snapshot = Number(session.details?.play_rate_yen);
+  if (snapshot === 1 || snapshot === 4) return snapshot;
+
+  return storeRate(storeById(session.details?.store_id));
+}
+
+function sessionProfit(session) {
+  const value = session.details?.actual_profit_yen;
+  return value == null ? 0 : Number(value) || 0;
+}
+
+function sessionEv(session) {
+  const value = session.details?.expected_value_yen;
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function matchesRate(session, filter) {
   if (filter === "all") return true;
   const rate = sessionRate(session);
   if (filter === "unknown") return rate === null;
-  return rate !== null && rate === Number(filter);
-}
-
-function profit(session) {
-  return Number(session.details?.actual_profit_yen) || 0;
-}
-
-function ev(session) {
-  const value = session.details?.expected_value_yen;
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function evSum(list) {
-  return list.reduce((total, s) => total + (ev(s) ?? 0), 0);
-}
-
-function evCoverage(list) {
-  return list.filter(s => ev(s) !== null).length;
-}
-
-function evSummary(list) {
-  const count = evCoverage(list);
-  return count
-    ? `${money(evSum(list))}（${count}/${list.length}件）`
-    : "未登録";
-}
-
-function autoEvValue(border, spins, ballsUsed, rate) {
-  if (!(border > 0 && spins > 0 && ballsUsed > 0 && rate > 0)) {
-    return null;
-  }
-  const rotation = spins / ballsUsed * 250;
-  return spins * (250 / border - 250 / rotation) * rate;
+  return rate === Number(filter);
 }
 
 function storeDelta(session) {
@@ -650,148 +680,46 @@ function storeDelta(session) {
   );
 }
 
-function storeBalance(store, excludeId = null) {
+function storeBalance(store, excludeSessionId = null) {
   if (!store) return 0;
 
   return Number(store.opening_balls || 0) +
     sessions
       .filter(s =>
-        s.id !== excludeId &&
+        s.id !== excludeSessionId &&
         s.details?.store_id === store.id &&
         s.details?.balance_version === "v1"
       )
       .reduce((sum, s) => sum + storeDelta(s), 0);
 }
 
-function updateBalancePreview() {
-  const store = selectedStore();
-  if (!store) {
-    el("balancePreview").textContent = "店舗を選択してください";
-    return;
-  }
-
-  const before = storeBalance(store, editingSession);
-  const delta = num("deposited") - num("savedBalls") - num("feeBalls");
-  const after = before + delta;
-
-  el("balancePreview").textContent =
-    `${rateLabel(rateOfStore(store))} 貯玉：` +
-    `${before.toLocaleString()}玉 → ${after.toLocaleString()}玉 ` +
-    `（増減 ${delta >= 0 ? "+" : ""}${delta.toLocaleString()}玉）`;
+function selectedGroup() {
+  return groupById($("storeGroupSelect").value);
 }
 
-function updateExchangeAmount() {
-  const total = num("ballsOut");
-  const deposited = num("deposited");
-  const rate = num("rate");
+function selectedRateStore() {
+  const group = selectedGroup();
+  const rate = Number($("playRateSelect").value);
 
-  if (deposited > total) {
-    el("exchangePreview").textContent =
-      "エラー：貯玉数が総獲得玉数を超えています";
-    return;
-  }
+  if (!group) return null;
 
-  const exchangeBalls = total - deposited;
-  const amount = Math.round(exchangeBalls * rate);
-
-  el("cashReturned").value = amount;
-  el("exchangePreview").textContent =
-    `${exchangeBalls.toLocaleString()}玉 × ${rate}円 = ` +
-    `${money(amount)}（端玉・景品交換差額は手動修正可）`;
+  return stores.find(s =>
+    s.store_group_id === group.id &&
+    storeRate(s) === rate
+  ) || null;
 }
 
-function setStoreTerms() {
-  const store = selectedStore();
-
-  if (!store) {
-    el("storeTerms").textContent = "店舗を登録してください";
-    return;
-  }
-
-  el("rate").value = store.exchange_rate;
-  el("purchaseRate").value = store.purchase_rate;
-
-  if (!editingSession) {
-    el("feeBalls").value = store.replay_fee_balls || 0;
-  }
-
-  const exchangeUnits = 100 / Number(store.exchange_rate);
-
-  el("storeTerms").textContent =
-    `${storeLabel(store)} / ` +
-    `貸玉 ${store.purchase_rate}円 / ` +
-    `交換 ${Number(exchangeUnits.toPrecision(8))}玉 / ` +
-    `再プレイ上限 ${store.replay_limit_balls ?? "無制限"}玉 / ` +
-    `手数料 ${store.replay_fee_balls || 0}玉`;
-
-  el("sessionRateNotice").textContent =
-    `${rateLabel(rateOfStore(store))}専用の貯玉残高を使用します。`;
-
-  el("autoRate").value = store.exchange_rate;
-  updateBalancePreview();
-  updateExchangeAmount();
-  updateEvPreview();
-}
-
-function updateEvFields() {
-  const mode = el("evMode").value;
-
-  if (mode === "auto" && el("autoBorder").value === "") {
-    const machine = machines.find(
-      m => m.id === el("machineSelect").value
-    );
-    if (machine?.border_rate != null) {
-      el("autoBorder").value = machine.border_rate;
-    }
-  }
-
-  el("manualEvFields").classList.toggle("hidden", mode !== "manual");
-  el("autoEvFields").classList.toggle("hidden", mode !== "auto");
-  updateEvPreview();
-}
-
-function updateEvPreview() {
-  const mode = el("evMode").value;
-
-  if (mode === "none") {
-    el("evPreview").textContent = "期待値未登録";
-    return;
-  }
-
-  if (mode === "manual") {
-    el("evPreview").textContent =
-      el("sessionEv").value !== ""
-        ? `登録期待値：${money(num("sessionEv"))}`
-        : "期待値を入力してください";
-    return;
-  }
-
-  const value = autoEvValue(
-    num("autoBorder"),
-    num("spins"),
-    num("ballsIn"),
-    num("autoRate")
-  );
-
-  el("evPreview").textContent =
-    value === null
-      ? "ボーダー・回転数・使用玉数・評価単価を入力してください"
-      : `参考期待値：${money(value)}（正式な期待値ではありません）`;
+function selectedMachine() {
+  return machineById($("machineSelect").value);
 }
 
 function page(id) {
-  const pages = [
-    "home",
-    "machinesPage",
-    "storesPage",
-    "sessionsPage",
-    "statsPage",
-    "evPage",
-    "settingsPage"
-  ];
-
-  for (const p of pages) {
-    el(p).classList.toggle("hidden", p !== id);
+  for (const name of [
+    "home", "machinesPage", "storesPage",
+    "sessionsPage", "statsPage",
+    "evPage", "settingsPage"
+  ]) {
+    $(name).classList.toggle("hidden", name !== id);
   }
 
   if (id === "statsPage") renderStats();
@@ -799,95 +727,123 @@ function page(id) {
 }
 
 document.querySelectorAll("[data-page]").forEach(button => {
-  button.onclick = () => page(button.dataset.page);
+  button.addEventListener("click", () => {
+    page(button.dataset.page);
+  });
 });
 
 async function refresh() {
   if (!user) return;
 
-  const [m, s, t] = await Promise.all([
-    db.from("machines").select("*")
-      .order("created_at", { ascending: false }),
-    db.from("sessions").select("*")
-      .order("played_on", { ascending: false }),
-    db.from("stores").select("*")
-      .order("name")
-  ]);
+  const [machineResult, groupResult, storeResult, sessionResult] =
+    await Promise.all([
+      db.from("machines").select("*")
+        .order("created_at", { ascending: false }),
+      db.from("store_groups").select("*").order("name"),
+      db.from("stores").select("*").order("name"),
+      db.from("sessions").select("*")
+        .order("played_on", { ascending: false })
+    ]);
 
-  if (m.error) throw m.error;
-  if (s.error) throw s.error;
-  if (t.error) throw t.error;
-
-  machines = m.data || [];
-  sessions = s.data || [];
-  stores = t.data || [];
-
-  render();
-}
-
-function renderStores() {
-  const previous = el("storeSelect").value;
-
-  el("storeSelect").innerHTML = stores.map(store =>
-    `<option value="${safe(store.id)}">${safe(storeLabel(store))}</option>`
-  ).join("");
-
-  if (stores.some(s => s.id === previous)) {
-    el("storeSelect").value = previous;
+  for (const result of [
+    machineResult, groupResult, storeResult, sessionResult
+  ]) {
+    if (result.error) throw result.error;
   }
 
-  el("storeList").innerHTML = stores.map(store => {
-    const balance = storeBalance(store);
-    const rate = rateOfStore(store);
+  machines = machineResult.data || [];
+  storeGroups = groupResult.data || [];
+  stores = storeResult.data || [];
+  sessions = sessionResult.data || [];
 
-    return `
-      <div class="item">
-        <b>${safe(store.name)}</b>
-        <span class="rate-tag">${safe(rateLabel(rate))}</span>
-        <div>貯玉残高：<strong>${balance.toLocaleString()}玉</strong></div>
-        <small>
-          貸玉 ${store.purchase_rate}円 /
-          交換 ${Number(store.exchange_rate).toFixed(4)}円 /
-          上限 ${store.replay_limit_balls ?? "無制限"}玉
-        </small>
-        <button class="secondary mini"
-          data-action="edit-store"
-          data-id="${safe(store.id)}">編集</button>
-      </div>
-    `;
-  }).join("") || "店舗がありません";
+  renderAll();
+}
 
-  if (!editingSession) setStoreTerms();
+function renderAll() {
+  renderMachines();
+  renderStores();
+  renderSessionSelectors();
+  renderHome();
+  renderStats();
+  renderEvMachines();
+}
+
+function updateMachineBorderPreview() {
+  const denominator = number("jackpotDenominator");
+  const ty = number("averageTy");
+
+  if (!(denominator > 0 && ty > 0)) {
+    $("machineBorderPreview").textContent = "—";
+    return;
+  }
+
+  const border = 250 * denominator / ty;
+
+  $("machineBorderPreview").textContent =
+    `${border.toFixed(2)}回 / 250玉`;
+}
+
+function clearMachine() {
+  editingMachine = null;
+  $("machineFormTitle").textContent = "機種登録";
+  $("saveMachine").textContent = "機種を登録";
+  $("cancelMachine").classList.add("hidden");
+
+  for (const id of [
+    "machineName", "maker",
+    "jackpotDenominator", "averageTy"
+  ]) {
+    $(id).value = "";
+  }
+
+  updateMachineBorderPreview();
+}
+
+function editMachine(id) {
+  const machine = machineById(id);
+  if (!machine) return;
+
+  editingMachine = id;
+  $("machineName").value = machine.name || "";
+  $("maker").value = machine.manufacturer || "";
+  $("jackpotDenominator").value =
+    machine.jackpot_denominator ?? "";
+  $("averageTy").value =
+    machine.average_ty_balls ?? "";
+
+  $("machineFormTitle").textContent = "機種を編集";
+  $("saveMachine").textContent = "変更を保存";
+  $("cancelMachine").classList.remove("hidden");
+
+  updateMachineBorderPreview();
+  page("machinesPage");
+  window.scrollTo(0, 0);
 }
 
 function renderMachines() {
-  const previous = el("machineSelect").value;
-
-  el("machineSelect").innerHTML = machines.map(machine =>
-    `<option value="${safe(machine.id)}">${safe(machine.name)}</option>`
-  ).join("");
-
-  if (machines.some(m => m.id === previous)) {
-    el("machineSelect").value = previous;
-  }
-
-  el("machineList").innerHTML = machines.map(machine => {
+  $("machineList").innerHTML = machines.map(machine => {
+    const border = machineBorder(machine);
     const used = sessions.some(s => s.machine_id === machine.id);
 
     return `
       <div class="item">
-        <b>${safe(machine.name)}</b>
-        <div class="muted">
-          ${safe(machine.manufacturer)} /
-          ボーダー ${machine.border_rate ?? "未設定"}
+        <b>${escapeHtml(machine.name)}</b>
+        <div class="muted">${escapeHtml(machine.manufacturer)}</div>
+        <div>
+          確率：1/${machine.jackpot_denominator ?? "未登録"}
+        </div>
+        <div>TY：${machine.average_ty_balls ?? "未登録"}玉</div>
+        <div>
+          等価ボーダー：
+          ${border === null ? "算出不可" : border.toFixed(2) + "回"}
         </div>
         <div class="row">
           <button class="secondary mini"
             data-action="edit-machine"
-            data-id="${safe(machine.id)}">編集</button>
+            data-id="${escapeHtml(machine.id)}">編集</button>
           <button class="danger mini"
             data-action="delete-machine"
-            data-id="${safe(machine.id)}"
+            data-id="${escapeHtml(machine.id)}"
             ${used ? "disabled" : ""}>削除</button>
         </div>
       </div>
@@ -895,199 +851,372 @@ function renderMachines() {
   }).join("") || "機種がありません";
 }
 
-function renderHome() {
-  const filter = el("homeRateFilter").value;
-  const month = today().slice(0, 7);
+function updateExchangePreview(rate) {
+  const units = number(`exchange${rate}`);
+  const price = units > 0 ? 100 / units : null;
 
-  const current = sessions.filter(s =>
-    String(s.played_on || "").startsWith(month) &&
-    matchesRate(s, filter)
-  );
-
-  const total = current.reduce((sum, s) => sum + profit(s), 0);
-
-  el("monthly").textContent = money(total);
-  el("monthCount").textContent = `${current.length}件の稼働`;
-  el("monthlyEv").textContent = evSummary(current);
-
-  el("monthlyDiff").textContent =
-    current.length && evCoverage(current) === current.length
-      ? money(total - evSum(current))
-      : "—（期待値未登録の稼働あり）";
-
-  el("history").innerHTML = sessions
-    .filter(s => matchesRate(s, filter))
-    .map(s => {
-      const machine = machines.find(m => m.id === s.machine_id);
-      const rate = sessionRate(s);
-      const used = Number(s.balls_in) || 0;
-      const spins = Number(s.normal_spins) || 0;
-      const rotation = used > 0
-        ? (spins / used * 250).toFixed(2)
-        : "算出不可";
-
-      return `
-        <div class="item">
-          <b>${safe(s.played_on)} /
-          ${safe(machine?.name || "機種未設定")}</b>
-          <span class="rate-tag">${safe(rateLabel(rate))}</span>
-          <div>実収支：${money(profit(s))}</div>
-          <div>期待値：${ev(s) === null ? "未登録" : money(ev(s))}</div>
-          <div>通常回転数：${spins}回転</div>
-          <small>
-            ${safe(s.store_name || "")} /
-            250玉あたり ${rotation}回転
-          </small>
-          <div class="row">
-            <button class="secondary mini"
-              data-action="edit-session"
-              data-id="${safe(s.id)}">編集</button>
-            <button class="danger mini"
-              data-action="delete-session"
-              data-id="${safe(s.id)}">削除</button>
-          </div>
-        </div>
-      `;
-    }).join("") || "稼働記録がありません";
+  $(`exchange${rate}Preview`).textContent =
+    price === null
+      ? "交換率を入力してください"
+      : `${units}玉交換 → ${price.toFixed(5)}円/玉`;
 }
 
-function render() {
-  renderStores();
-  renderMachines();
-  renderHome();
-  renderStats();
-  renderEvMachines();
-}
-
-function exchangeFromUnits() {
-  const units = num("storeExchangeUnits");
-  return units > 0 ? 100 / units : null;
-}
-
-function updateExchangePreview() {
-  const rate = exchangeFromUnits();
-  el("storeExchangePreview").textContent =
-    rate === null
-      ? "正の交換玉数を入力してください"
-      : `${num("storeExchangeUnits")}玉交換 → ${rate.toFixed(6)}円／玉`;
-}
-
-function updateStoreRate() {
-  const choice = el("storePlayRate").value;
-  const custom = choice === "other";
-
-  el("customRateFields").classList.toggle("hidden", !custom);
-
-  if (!custom) {
-    const rate = Number(choice);
-    el("storePurchase").value = rate;
-    el("storeExchangeUnits").value = 100 / rate;
-    updateExchangePreview();
+function updateEnabledRates() {
+  for (const rate of [4, 1]) {
+    $(`rate${rate}Fields`).classList.toggle(
+      "hidden",
+      !$(`enable${rate}`).checked
+    );
   }
 }
 
-function clearStore() {
-  editingStore = null;
-  el("storeFormTitle").textContent = "店舗・貸玉レート設定";
-  el("saveStore").textContent = "店舗・レート設定を保存";
-  el("cancelStore").classList.add("hidden");
-  el("storeName").value = "";
-  el("storePlayRate").value = "4";
-  el("customPlayRate").value = "";
-  el("storeLimit").value = "";
-  el("storeFee").value = 0;
-  el("storeOpening").value = 0;
-  updateStoreRate();
-}
+function clearStoreForm() {
+  editingStoreGroup = null;
 
-function editStore(id) {
-  const store = stores.find(s => s.id === id);
-  if (!store) return;
+  $("storeFormTitle").textContent = "店舗登録";
+  $("saveStore").textContent = "店舗をまとめて保存";
+  $("cancelStore").classList.add("hidden");
+  $("storeName").value = "";
 
-  editingStore = id;
-  el("storeName").value = store.name;
-
-  const rate = rateOfStore(store);
-  if (rate === 4 || rate === 1) {
-    el("storePlayRate").value = String(rate);
-  } else {
-    el("storePlayRate").value = "other";
-    el("customPlayRate").value = rate ?? "";
+  for (const rate of [4, 1]) {
+    $(`enable${rate}`).checked = true;
+    $(`exchange${rate}`).value = 100 / rate;
+    $(`limit${rate}`).value = "";
+    $(`fee${rate}`).value = 0;
+    $(`opening${rate}`).value = 0;
+    updateExchangePreview(rate);
   }
 
-  el("customRateFields").classList.toggle(
-    "hidden",
-    el("storePlayRate").value !== "other"
-  );
+  updateEnabledRates();
+}
 
-  el("storePurchase").value = store.purchase_rate;
-  el("storeExchangeUnits").value =
-    Number((100 / Number(store.exchange_rate)).toPrecision(12));
-  el("storeLimit").value = store.replay_limit_balls ?? "";
-  el("storeFee").value = store.replay_fee_balls ?? 0;
-  el("storeOpening").value = store.opening_balls ?? 0;
+function editStoreGroup(id) {
+  const group = groupById(id);
+  if (!group) return;
 
-  updateExchangePreview();
+  editingStoreGroup = id;
+  $("storeName").value = group.name;
 
-  el("storeFormTitle").textContent = "店舗・レート設定を編集";
-  el("saveStore").textContent = "変更を保存";
-  el("cancelStore").classList.remove("hidden");
+  for (const rate of [4, 1]) {
+    const store = stores.find(s =>
+      s.store_group_id === id &&
+      storeRate(s) === rate
+    );
+
+    $(`enable${rate}`).checked = !!store;
+
+    $(`exchange${rate}`).value =
+      store ? 100 / Number(store.exchange_rate) : 100 / rate;
+
+    $(`limit${rate}`).value =
+      store?.replay_limit_balls ?? "";
+
+    $(`fee${rate}`).value =
+      store?.replay_fee_balls ?? 0;
+
+    $(`opening${rate}`).value =
+      store?.opening_balls ?? 0;
+
+    updateExchangePreview(rate);
+  }
+
+  updateEnabledRates();
+
+  $("storeFormTitle").textContent = "店舗を編集";
+  $("saveStore").textContent = "変更を保存";
+  $("cancelStore").classList.remove("hidden");
 
   page("storesPage");
   window.scrollTo(0, 0);
 }
 
-function clearMachine() {
-  editingMachine = null;
-  el("machineFormTitle").textContent = "機種登録";
-  el("saveMachine").textContent = "機種を登録";
-  el("cancelMachine").classList.add("hidden");
-  for (const id of ["machineName", "maker", "border"]) {
-    el(id).value = "";
+function renderStores() {
+  $("storeList").innerHTML = storeGroups.map(group => {
+    const rateRows = [4, 1].map(rate => {
+      const store = stores.find(s =>
+        s.store_group_id === group.id &&
+        storeRate(s) === rate
+      );
+
+      if (!store) return "";
+
+      return `
+        <div class="item">
+          <span class="rate-tag">${rateName(rate)}</span>
+          <div>
+            貯玉：
+            <strong>${storeBalance(store).toLocaleString()}玉</strong>
+          </div>
+          <small>
+            交換 ${Number(store.exchange_rate).toFixed(4)}円/玉 /
+            再プレイ上限
+            ${store.replay_limit_balls ?? "無制限"}玉
+          </small>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="item">
+        <b>${escapeHtml(group.name)}</b>
+        ${rateRows}
+        <button class="secondary mini"
+          data-action="edit-store-group"
+          data-id="${escapeHtml(group.id)}">編集</button>
+      </div>
+    `;
+  }).join("") || "店舗がありません";
+}
+
+function renderSessionSelectors() {
+  const previousGroup = $("storeGroupSelect").value;
+  const previousMachine = $("machineSelect").value;
+
+  $("storeGroupSelect").innerHTML = storeGroups.map(group =>
+    `<option value="${escapeHtml(group.id)}">
+      ${escapeHtml(group.name)}
+    </option>`
+  ).join("");
+
+  $("machineSelect").innerHTML = machines.map(machine =>
+    `<option value="${escapeHtml(machine.id)}">
+      ${escapeHtml(machine.name)}
+    </option>`
+  ).join("");
+
+  if (storeGroups.some(g => g.id === previousGroup)) {
+    $("storeGroupSelect").value = previousGroup;
+  }
+
+  if (machines.some(m => m.id === previousMachine)) {
+    $("machineSelect").value = previousMachine;
+  }
+
+  updateAvailableRates();
+  updateSessionPreview();
+}
+
+function updateAvailableRates() {
+  const group = selectedGroup();
+  const previous = $("playRateSelect").value;
+
+  const available = stores.filter(s =>
+    s.store_group_id === group?.id &&
+    storeRate(s) !== null
+  );
+
+  $("playRateSelect").innerHTML = available.map(store => {
+    const rate = storeRate(store);
+    return `<option value="${rate}">${rateName(rate)}</option>`;
+  }).join("");
+
+  if (available.some(s => String(storeRate(s)) === previous)) {
+    $("playRateSelect").value = previous;
   }
 }
 
-function editMachine(id) {
-  const machine = machines.find(m => m.id === id);
-  if (!machine) return;
+function updateSessionPreview() {
+  const store = selectedRateStore();
+  const machine = selectedMachine();
+  const border = machineBorder(machine);
 
-  editingMachine = id;
-  el("machineName").value = machine.name || "";
-  el("maker").value = machine.manufacturer || "";
-  el("border").value = machine.border_rate ?? "";
-  el("machineFormTitle").textContent = "機種を編集";
-  el("saveMachine").textContent = "変更を保存";
-  el("cancelMachine").classList.remove("hidden");
+  $("sessionBorderPreview").textContent =
+    border === null ? "—" : `${border.toFixed(2)}回 / 250玉`;
 
-  page("machinesPage");
-  window.scrollTo(0, 0);
+  if (!store) {
+    $("storeTerms").textContent = "店舗・レート設定がありません";
+    $("balancePreview").textContent = "";
+    updateRotationPreview();
+    updateEvPreview();
+    return;
+  }
+
+  $("storeTerms").textContent =
+    `${rateName(storeRate(store))} / ` +
+    `交換単価 ${Number(store.exchange_rate).toFixed(5)}円/玉 / ` +
+    `貯玉残高 ${storeBalance(store).toLocaleString()}玉`;
+
+  if (!editingSession) {
+    $("feeBalls").value = store.replay_fee_balls ?? 0;
+  }
+
+  updateBalancePreview();
+  updateRotationPreview();
+  updateEvPreview();
+}
+
+function updateRotationPreview() {
+  const balls = number("ballsIn");
+  const spins = number("spins");
+
+  $("rotationPreview").textContent =
+    balls > 0 && spins >= 0
+      ? `${(spins / balls * 250).toFixed(2)}回`
+      : "—";
+}
+
+function updateExchangeAmount() {
+  const store = selectedRateStore();
+  if (!store) return;
+
+  const total = number("ballsOut");
+  const deposited = number("deposited");
+
+  if (deposited > total) {
+    $("exchangePreview").textContent =
+      "貯玉数が総獲得玉数を超えています";
+    return;
+  }
+
+  const exchangeBalls = total - deposited;
+  const amount = Math.round(
+    exchangeBalls * Number(store.exchange_rate)
+  );
+
+  $("cashReturned").value = amount;
+  $("exchangePreview").textContent =
+    `${exchangeBalls.toLocaleString()}玉 × ` +
+    `${Number(store.exchange_rate).toFixed(5)}円 = ${yen(amount)}`;
+}
+
+function updateBalancePreview() {
+  const store = selectedRateStore();
+  if (!store) return;
+
+  const before = storeBalance(store, editingSession);
+  const delta =
+    number("deposited") -
+    number("savedBalls") -
+    number("feeBalls");
+
+  $("balancePreview").textContent =
+    `${rateName(storeRate(store))}の貯玉：` +
+    `${before.toLocaleString()}玉 → ` +
+    `${(before + delta).toLocaleString()}玉`;
+}
+
+/*
+ * 期待値参考モデル
+ *
+ * 理論期待出玉 = 通常回転数 / 確率分母 × TY
+ *
+ * 事後コスト評価：
+ * 期待出玉 × 交換単価
+ * − 現金投資
+ * − 使用貯玉 × 交換単価
+ * − 再プレイ手数料 × 交換単価
+ *
+ * これは記録された投入額に対する事後的な参考評価。
+ * 厳密な事前期待値とは区別する。
+ */
+function calculateSessionReferenceEv() {
+  const store = selectedRateStore();
+  const machine = selectedMachine();
+
+  if (!store || !machine) return null;
+
+  const spins = number("spins");
+  const expectedBalls =
+    theoreticalExpectedBalls(machine, spins);
+
+  if (expectedBalls === null || spins <= 0) return null;
+
+  const exchangeRate = Number(store.exchange_rate);
+
+  if (!(exchangeRate > 0)) return null;
+
+  const cash = number("cash");
+  const saved = number("savedBalls");
+  const fee = number("feeBalls");
+
+  const expectedYen = expectedBalls * exchangeRate;
+  const costYen =
+    cash + (saved + fee) * exchangeRate;
+
+  return {
+    value: expectedYen - costYen,
+    expectedBalls,
+    expectedYen,
+    costYen,
+    calculation_type: "retrospective-reference-v1"
+  };
+}
+
+function updateEvFields() {
+  const mode = $("evMode").value;
+
+  $("manualEvFields").classList.toggle(
+    "hidden", mode !== "manual"
+  );
+  $("autoEvFields").classList.toggle(
+    "hidden", mode !== "auto"
+  );
+
+  updateEvPreview();
+}
+
+function updateEvPreview() {
+  const mode = $("evMode").value;
+
+  if (mode === "none") {
+    $("evPreview").textContent = "未登録";
+    $("evDetails").textContent = "";
+    return;
+  }
+
+  if (mode === "manual") {
+    $("evPreview").textContent =
+      val("sessionEv") === ""
+        ? "—"
+        : yen(number("sessionEv"));
+
+    $("evDetails").textContent =
+      "手動入力された期待値です";
+    return;
+  }
+
+  const result = calculateSessionReferenceEv();
+
+  if (!result) {
+    $("evPreview").textContent = "—";
+    $("evDetails").textContent =
+      "機種スペック、通常回転数、店舗設定を入力してください";
+    return;
+  }
+
+  $("evPreview").textContent = yen(result.value);
+  $("evDetails").textContent =
+    `理論期待出玉 ${result.expectedBalls.toFixed(1)}玉 / ` +
+    `期待出玉価値 ${yen(result.expectedYen)} / ` +
+    `記録済み投入コスト ${yen(result.costYen)}。` +
+    "実際の投資額を使う事後的な参考値です。";
 }
 
 function clearSession() {
   editingSession = null;
-  el("sessionFormTitle").textContent = "稼働記録を追加";
-  el("saveSession").textContent = "記録を保存";
-  el("cancelSession").classList.add("hidden");
-  el("date").value = today();
+  $("sessionFormTitle").textContent = "稼働記録を追加";
+  $("saveSession").textContent = "稼働記録を保存";
+  $("cancelSession").classList.add("hidden");
+  $("date").value = today();
 
   for (const id of [
     "cash", "savedBalls", "ballsOut", "deposited",
     "cashReturned", "feeBalls", "ballsIn", "spins"
   ]) {
-    el(id).value = 0;
+    $(id).value = 0;
   }
 
   for (const id of [
-    "manualProfit", "sessionEv", "evSource",
-    "autoBorder", "notes"
+    "manualProfit", "sessionEv", "evSource", "notes"
   ]) {
-    el(id).value = "";
+    $(id).value = "";
   }
 
-  el("evMode").value = "none";
-  el("saveSessionStatus").textContent = "";
-  setStoreTerms();
+  $("evMode").value = "auto";
+  $("saveSessionStatus").textContent = "";
+
   updateEvFields();
+  updateSessionPreview();
 }
 
 function editSession(id) {
@@ -1095,68 +1224,64 @@ function editSession(id) {
   if (!session) return;
 
   editingSession = id;
+
   const d = session.details || {};
+  const store = storeById(d.store_id);
 
-  el("date").value = session.played_on || today();
-  el("machineSelect").value = session.machine_id || "";
-  el("storeSelect").value = d.store_id || "";
+  $("date").value = session.played_on || today();
+  $("machineSelect").value = session.machine_id || "";
 
-  el("cash").value = session.cash_investment_yen ?? 0;
-  el("savedBalls").value = d.saved_balls_invested ?? 0;
-  el("ballsOut").value = session.balls_out ?? 0;
-  el("deposited").value = d.deposited_balls ?? 0;
-  el("cashReturned").value = d.cash_returned_yen ?? 0;
-  el("feeBalls").value = d.replay_fee_balls ?? 0;
-  el("ballsIn").value = session.balls_in ?? 0;
-  el("spins").value = session.normal_spins ?? 0;
-  el("rate").value = d.exchange_rate_yen_per_ball ?? 4;
-  el("purchaseRate").value = d.purchase_rate_yen_per_ball ?? 4;
-
-  el("manualProfit").value =
-    d.profit_manually_entered ? d.actual_profit_yen ?? "" : "";
-
-  el("evMode").value = d.expected_value_mode || "none";
-  el("sessionEv").value = ev(session) ?? "";
-  el("evSource").value = d.expected_value_source || "";
-  el("autoBorder").value =
-    d.expected_value_inputs?.border ??
-    machines.find(m => m.id === session.machine_id)?.border_rate ??
-    "";
-  el("autoRate").value = d.expected_value_inputs?.rate ??
-    d.exchange_rate_yen_per_ball ?? 4;
-
-  el("notes").value = session.notes || "";
-
-  updateEvFields();
-  updateBalancePreview();
-
-  el("exchangePreview").textContent =
-    "保存済みの換金額です。玉数・交換単価を変更すると再計算します。";
-
-  if (d.balance_version !== "v1") {
-    msg("旧形式の記録です。編集保存前に収支・貯玉の数値を確認してください。");
+  if (store) {
+    $("storeGroupSelect").value = store.store_group_id || "";
+    updateAvailableRates();
+    $("playRateSelect").value = String(storeRate(store));
   }
 
-  el("sessionFormTitle").textContent = "稼働記録を編集";
-  el("saveSession").textContent = "変更を保存";
-  el("cancelSession").classList.remove("hidden");
+  $("cash").value = session.cash_investment_yen ?? 0;
+  $("savedBalls").value = d.saved_balls_invested ?? 0;
+  $("ballsOut").value = session.balls_out ?? 0;
+  $("deposited").value = d.deposited_balls ?? 0;
+  $("cashReturned").value = d.cash_returned_yen ?? 0;
+  $("feeBalls").value = d.replay_fee_balls ?? 0;
+  $("ballsIn").value = session.balls_in ?? 0;
+  $("spins").value = session.normal_spins ?? 0;
+
+  $("manualProfit").value =
+    d.profit_manually_entered
+      ? d.actual_profit_yen ?? ""
+      : "";
+
+  $("evMode").value = d.expected_value_mode || "none";
+  $("sessionEv").value = sessionEv(session) ?? "";
+  $("evSource").value = d.expected_value_source || "";
+  $("notes").value = session.notes || "";
+
+  $("sessionFormTitle").textContent = "稼働記録を編集";
+  $("saveSession").textContent = "変更を保存";
+  $("cancelSession").classList.remove("hidden");
+
+  updateEvFields();
+  updateSessionPreview();
+
+  $("cashReturned").value = d.cash_returned_yen ?? 0;
 
   page("sessionsPage");
   window.scrollTo(0, 0);
 }
 
-async function work(button, fn) {
+async function run(button, callback) {
   if (busy) return;
+
   busy = true;
   button.disabled = true;
 
   try {
-    await fn();
+    await callback();
   } catch (error) {
-    fail(error);
+    errorMessage(error);
     if (button.id === "saveSession") {
-      el("saveSessionStatus").textContent =
-        "保存できませんでした：" + (error?.message || String(error));
+      $("saveSessionStatus").textContent =
+        "保存失敗：" + (error?.message || String(error));
     }
   } finally {
     busy = false;
@@ -1164,152 +1289,154 @@ async function work(button, fn) {
   }
 }
 
-el("saveStore").onclick = () => work(el("saveStore"), async () => {
-  if (!user) throw Error("ログインしてください");
-
-  const name = el("storeName").value.trim();
-  if (!name) throw Error("店舗名を入力してください");
-
-  const choice = el("storePlayRate").value;
-  const playRate = choice === "other"
-    ? num("customPlayRate")
-    : Number(choice);
-
-  const purchase = num("storePurchase");
-  const exchange = exchangeFromUnits();
-  const limit = el("storeLimit").value.trim() === ""
-    ? null
-    : num("storeLimit");
-  const fee = num("storeFee");
-  const opening = num("storeOpening");
-
-  if (!(playRate > 0 && purchase > 0 && exchange > 0)) {
-    throw Error("貸玉レート・単価・交換率を確認してください");
-  }
-
-  if (Math.abs(playRate - purchase) > 0.000001) {
-    throw Error("貸玉レートと実際の貸玉単価が一致していません");
-  }
-
-  if (limit !== null && (!Number.isInteger(limit) || limit < 0)) {
-    throw Error("再プレイ上限は0以上の整数にしてください");
-  }
-
-  if (!Number.isInteger(fee) || fee < 0 ||
-      !Number.isInteger(opening) || opening < 0) {
-    throw Error("手数料と貯玉残高は0以上の整数にしてください");
-  }
-
-  const duplicate = stores.find(s =>
-    s.id !== editingStore &&
-    s.name.trim() === name &&
-    rateOfStore(s) === playRate
-  );
-
-  if (duplicate) {
-    throw Error("同じ店舗・貸玉レートの設定が既にあります");
-  }
-
-  const existing = stores.find(s => s.id === editingStore);
-
-  if (existing &&
-      rateOfStore(existing) !== playRate &&
-      sessions.some(s => s.details?.store_id === existing.id)) {
-    throw Error(
-      "稼働履歴がある店舗設定の貸玉レートは変更できません。" +
-      "別のレートとして新規登録してください。"
-    );
-  }
-
-  const payload = {
-    name,
-    play_rate_yen: playRate,
-    purchase_rate: purchase,
-    exchange_rate: exchange,
-    replay_limit_balls: limit,
-    replay_fee_balls: fee,
-    opening_balls: opening
-  };
-
-  const query = editingStore
-    ? db.from("stores").update(payload)
-        .eq("id", editingStore).eq("user_id", user.id)
-    : db.from("stores").insert({
-        ...payload,
-        user_id: user.id
-      });
-
-  const { error } = await query;
-  if (error) throw error;
-
-  clearStore();
-  await refresh();
-  msg("店舗・貸玉レート設定を保存しました");
-});
-
-el("saveMachine").onclick = () => work(el("saveMachine"), async () => {
-  if (!user) throw Error("ログインしてください");
-
-  const name = el("machineName").value.trim();
-  if (!name) throw Error("機種名を入力してください");
-
-  const border = el("border").value === ""
-    ? null
-    : num("border");
-
-  if (border !== null && border <= 0) {
-    throw Error("ボーダーは正の数にしてください");
-  }
-
-  const payload = {
-    name,
-    manufacturer: el("maker").value.trim(),
-    border_rate: border
-  };
-
-  const query = editingMachine
-    ? db.from("machines").update(payload)
-        .eq("id", editingMachine).eq("user_id", user.id)
-    : db.from("machines").insert({
-        ...payload,
-        user_id: user.id
-      });
-
-  const { error } = await query;
-  if (error) throw error;
-
-  clearMachine();
-  await refresh();
-  msg("機種を保存しました");
-});
-
-el("saveSession").onclick = () => {
-  el("saveSessionStatus").textContent = "保存処理中…";
-
-  return work(el("saveSession"), async () => {
+$("saveMachine").onclick = () =>
+  run($("saveMachine"), async () => {
     if (!user) throw Error("ログインしてください");
 
-    const store = selectedStore();
-    if (!store) throw Error("店舗・貸玉レートを選択してください");
+    const name = val("machineName");
+    const denominator = number("jackpotDenominator");
+    const ty = number("averageTy");
 
-    const playRate = rateOfStore(store);
-    if (playRate === null) {
-      throw Error("貸玉レート未分類の店舗です。店舗設定を確認してください");
+    if (!name) throw Error("機種名を入力してください");
+    if (!(denominator > 0 && ty > 0)) {
+      throw Error("大当たり確率とTYを入力してください");
     }
 
-    if (!el("date").value || !el("machineSelect").value) {
-      throw Error("稼働日と機種を入力してください");
+    const payload = {
+      name,
+      manufacturer: val("maker"),
+      jackpot_denominator: denominator,
+      average_ty_balls: ty,
+      border_rate: 250 * denominator / ty
+    };
+
+    const query = editingMachine
+      ? db.from("machines").update(payload)
+          .eq("id", editingMachine).eq("user_id", user.id)
+      : db.from("machines").insert({
+          ...payload,
+          user_id: user.id
+        });
+
+    const { error } = await query;
+    if (error) throw error;
+
+    clearMachine();
+    await refresh();
+    message("機種を保存しました");
+  });
+
+$("saveStore").onclick = () =>
+  run($("saveStore"), async () => {
+    if (!user) throw Error("ログインしてください");
+
+    const name = val("storeName");
+    if (!name) throw Error("店舗名を入力してください");
+
+    const enabled = [4, 1].filter(rate =>
+      $(`enable${rate}`).checked
+    );
+
+    if (!enabled.length) {
+      throw Error("最低1つの貸玉レートを有効にしてください");
     }
 
-    const nonnegative = [
+    for (const rate of enabled) {
+      if (!(number(`exchange${rate}`) > 0)) {
+        throw Error(`${rate}パチの交換率を確認してください`);
+      }
+
+      for (const id of [`fee${rate}`, `opening${rate}`]) {
+        if (!Number.isInteger(number(id)) || number(id) < 0) {
+          throw Error("玉数は0以上の整数で入力してください");
+        }
+      }
+
+      const limitValue = val(`limit${rate}`);
+      if (limitValue !== "" &&
+          (!Number.isInteger(Number(limitValue)) ||
+           Number(limitValue) < 0)) {
+        throw Error("再プレイ上限を確認してください");
+      }
+    }
+
+    let groupId = editingStoreGroup;
+
+    if (!groupId) {
+      const { data, error } = await db
+        .from("store_groups")
+        .insert({ user_id: user.id, name })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      groupId = data.id;
+    } else {
+      const { error } = await db
+        .from("store_groups")
+        .update({ name })
+        .eq("id", groupId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    }
+
+    for (const rate of enabled) {
+      const existing = stores.find(s =>
+        s.store_group_id === groupId &&
+        storeRate(s) === rate
+      );
+
+      const payload = {
+        name,
+        store_group_id: groupId,
+        play_rate_yen: rate,
+        purchase_rate: rate,
+        exchange_rate: 100 / number(`exchange${rate}`),
+        replay_limit_balls: val(`limit${rate}`) === ""
+          ? null
+          : number(`limit${rate}`),
+        replay_fee_balls: number(`fee${rate}`),
+        opening_balls: number(`opening${rate}`)
+      };
+
+      const query = existing
+        ? db.from("stores").update(payload)
+            .eq("id", existing.id).eq("user_id", user.id)
+        : db.from("stores").insert({
+            ...payload,
+            user_id: user.id
+          });
+
+      const { error } = await query;
+      if (error) throw error;
+    }
+
+    clearStoreForm();
+    await refresh();
+    message("店舗・貸玉レート設定を保存しました");
+  });
+
+$("saveSession").onclick = () =>
+  run($("saveSession"), async () => {
+    if (!user) throw Error("ログインしてください");
+
+    const store = selectedRateStore();
+    const machine = selectedMachine();
+
+    if (!store || !machine) {
+      throw Error("店舗・貸玉レート・機種を選択してください");
+    }
+
+    if (!val("date")) throw Error("稼働日を入力してください");
+
+    for (const id of [
       "cash", "savedBalls", "ballsOut", "deposited",
       "cashReturned", "feeBalls", "ballsIn", "spins"
-    ];
-
-    for (const id of nonnegative) {
-      const raw = el(id).value.trim();
-      if (raw === "" || !Number.isFinite(Number(raw)) ||
-          Number(raw) < 0) {
+    ]) {
+      if (val(id) === "" ||
+          !Number.isFinite(number(id)) ||
+          number(id) < 0) {
         throw Error(`${id}の入力値を確認してください`);
       }
     }
@@ -1318,113 +1445,97 @@ el("saveSession").onclick = () => {
       "savedBalls", "ballsOut", "deposited",
       "feeBalls", "ballsIn", "spins"
     ]) {
-      if (!Number.isInteger(num(id))) {
+      if (!Number.isInteger(number(id))) {
         throw Error("玉数と回転数は整数で入力してください");
       }
     }
 
-    if (num("deposited") > num("ballsOut")) {
+    if (number("deposited") > number("ballsOut")) {
       throw Error("貯玉数が総獲得玉数を超えています");
     }
 
-    if (num("rate") <= 0 || num("purchaseRate") <= 0) {
-      throw Error("交換単価・貸玉単価を確認してください");
+    const delta =
+      number("deposited") -
+      number("savedBalls") -
+      number("feeBalls");
+
+    if (storeBalance(store, editingSession) + delta < 0) {
+      throw Error("貯玉残高が不足しています");
     }
 
     if (store.replay_limit_balls !== null &&
-        num("savedBalls") > Number(store.replay_limit_balls)) {
+        number("savedBalls") > Number(store.replay_limit_balls)) {
       throw Error("再プレイ上限を超えています");
     }
 
-    const delta =
-      num("deposited") - num("savedBalls") - num("feeBalls");
+    const existing = sessions.find(s => s.id === editingSession);
+    const manualProfit = val("manualProfit") !== "";
 
-    const balanceAfter = storeBalance(store, editingSession) + delta;
-    if (balanceAfter < 0) {
-      throw Error("貯玉残高がマイナスになります");
-    }
+    const actualProfit = manualProfit
+      ? number("manualProfit")
+      : number("cashReturned") -
+        number("cash") +
+        delta * Number(store.exchange_rate);
 
-    const existing = editingSession
-      ? sessions.find(s => s.id === editingSession)
-      : null;
+    let expectedValue = null;
+    let expectedType = null;
 
-    const manualProfit = el("manualProfit").value.trim() !== "";
-    const exchangeRate = num("rate");
+    const mode = $("evMode").value;
 
-    const actual = manualProfit
-      ? num("manualProfit")
-      : num("cashReturned") - num("cash") + delta * exchangeRate;
-
-    const evMode = el("evMode").value;
-    let expected = null;
-    let evInputs = null;
-
-    if (evMode === "manual") {
-      if (el("sessionEv").value.trim() === "") {
+    if (mode === "manual") {
+      if (val("sessionEv") === "") {
         throw Error("期待値を入力してください");
       }
-      expected = num("sessionEv");
-    }
 
-    if (evMode === "auto") {
-      const border = num("autoBorder");
-      const spins = num("spins");
-      const used = num("ballsIn");
-      const rate = num("autoRate");
+      expectedValue = number("sessionEv");
+      expectedType = "manual";
+    } else if (mode === "auto") {
+      const result = calculateSessionReferenceEv();
 
-      expected = autoEvValue(border, spins, used, rate);
-
-      if (expected === null) {
-        throw Error("自動期待値の計算条件を入力してください");
+      if (!result) {
+        throw Error("期待値の計算条件が不足しています");
       }
 
-      evInputs = {
-        border,
-        spins,
-        used,
-        rate,
-        formula: "spins*(250/border-250/(spins/used*250))*rate",
-        version: "reference-v1"
-      };
+      expectedValue = result.value;
+      expectedType = result.calculation_type;
     }
 
     const details = {
       ...(existing?.details || {}),
-      play_rate_yen: playRate,
       store_id: store.id,
+      store_group_id: store.store_group_id,
+      play_rate_yen: storeRate(store),
       balance_version: "v1",
-      saved_balls_invested: num("savedBalls"),
-      deposited_balls: num("deposited"),
-      replay_fee_balls: num("feeBalls"),
-      cash_returned_yen: num("cashReturned"),
-      exchange_rate_yen_per_ball: exchangeRate,
-      purchase_rate_yen_per_ball: num("purchaseRate"),
-      actual_profit_yen: actual,
+      saved_balls_invested: number("savedBalls"),
+      deposited_balls: number("deposited"),
+      replay_fee_balls: number("feeBalls"),
+      cash_returned_yen: number("cashReturned"),
+      exchange_rate_yen_per_ball: Number(store.exchange_rate),
+      purchase_rate_yen_per_ball: storeRate(store),
+      actual_profit_yen: actualProfit,
       profit_manually_entered: manualProfit,
       profit_formula_version: "v3-balance",
-      expected_value_yen: expected,
-      expected_value_mode: evMode,
+      expected_value_yen: expectedValue,
+      expected_value_mode: mode,
+      expected_value_type: expectedType,
       expected_value_source:
-        evMode === "manual" ? el("evSource").value.trim() : "",
-      expected_value_inputs: evInputs,
-      store_terms_snapshot: {
-        play_rate_yen: playRate,
-        purchase_rate: num("purchaseRate"),
-        exchange_rate: exchangeRate,
-        replay_limit_balls: store.replay_limit_balls,
-        replay_fee_balls: store.replay_fee_balls
-      }
+        mode === "manual" ? val("evSource") : "",
+      jackpot_denominator_snapshot:
+        Number(machine.jackpot_denominator),
+      average_ty_snapshot:
+        Number(machine.average_ty_balls),
+      theoretical_border_snapshot: machineBorder(machine)
     };
 
     const payload = {
-      machine_id: el("machineSelect").value,
-      played_on: el("date").value,
-      store_name: store.name,
-      cash_investment_yen: num("cash"),
-      balls_in: num("ballsIn"),
-      balls_out: num("ballsOut"),
-      normal_spins: num("spins"),
-      notes: el("notes").value,
+      machine_id: machine.id,
+      played_on: val("date"),
+      store_name: selectedGroup()?.name || store.name,
+      cash_investment_yen: number("cash"),
+      balls_in: number("ballsIn"),
+      balls_out: number("ballsOut"),
+      normal_spins: number("spins"),
+      notes: val("notes"),
       details
     };
 
@@ -1442,10 +1553,8 @@ el("saveSession").onclick = () => {
     clearSession();
     await refresh();
     page("home");
-    msg("稼働記録を保存しました");
-    el("saveSessionStatus").textContent = "保存完了";
+    message("稼働記録を保存しました");
   });
-};
 
 async function deleteRecord(type, id) {
   if (!user || busy) return;
@@ -1456,16 +1565,13 @@ async function deleteRecord(type, id) {
 
   if (!record) return;
 
-  if (!isSession && sessions.some(s => s.machine_id === id)) {
-    msg("稼働履歴がある機種は削除できません");
+  if (!isSession &&
+      sessions.some(s => s.machine_id === id)) {
+    message("稼働履歴がある機種は削除できません");
     return;
   }
 
-  const label = isSession
-    ? `${record.played_on}の稼働記録`
-    : `機種「${record.name}」`;
-
-  if (!confirm(`${label}を削除しますか？この操作は取り消せません。`)) {
+  if (!confirm("削除しますか？この操作は取り消せません。")) {
     return;
   }
 
@@ -1483,9 +1589,9 @@ async function deleteRecord(type, id) {
     if (!data?.length) throw Error("削除できませんでした");
 
     await refresh();
-    msg(`${label}を削除しました`);
+    message("削除しました");
   } catch (error) {
-    fail(error);
+    errorMessage(error);
   } finally {
     busy = false;
   }
@@ -1498,123 +1604,179 @@ document.addEventListener("click", event => {
   const action = button.dataset.action;
   const id = button.dataset.id;
 
-  if (action === "edit-store") editStore(id);
   if (action === "edit-machine") editMachine(id);
+  if (action === "edit-store-group") editStoreGroup(id);
   if (action === "edit-session") editSession(id);
   if (action === "delete-machine") deleteRecord("machine", id);
   if (action === "delete-session") deleteRecord("session", id);
 });
 
-function grouped(list, keyFunction) {
-  const groups = new Map();
-
-  for (const session of list) {
-    const key = keyFunction(session) || "未設定";
-    const item = groups.get(key) || {
-      count: 0,
-      total: 0,
-      expected: 0,
-      evCount: 0
-    };
-
-    item.count++;
-    item.total += profit(session);
-
-    const value = ev(session);
-    if (value !== null) {
-      item.expected += value;
-      item.evCount++;
-    }
-
-    groups.set(key, item);
-  }
-
-  return [...groups.entries()];
+function evSum(list) {
+  return list.reduce((sum, s) => sum + (sessionEv(s) ?? 0), 0);
 }
 
-function groupHtml(groups) {
-  return groups.map(([key, value]) => {
-    const complete = value.count === value.evCount;
+function evCount(list) {
+  return list.filter(s => sessionEv(s) !== null).length;
+}
 
-    return `
-      <div class="item">
-        <b>${safe(key)}</b>
-        <div>実収支：${money(value.total)}</div>
-        <div>
-          登録期待値：
-          ${value.evCount ? money(value.expected) : "未登録"}
-          （${value.evCount}/${value.count}件）
+function renderHome() {
+  const filter = $("homeRateFilter").value;
+  const month = today().slice(0, 7);
+
+  const current = sessions.filter(s =>
+    String(s.played_on || "").startsWith(month) &&
+    matchesRate(s, filter)
+  );
+
+  const total = current.reduce(
+    (sum, s) => sum + sessionProfit(s), 0
+  );
+
+  $("monthly").textContent = yen(total);
+  $("monthCount").textContent = `${current.length}件の稼働`;
+
+  $("monthlyEv").textContent = evCount(current)
+    ? `${yen(evSum(current))}（${evCount(current)}/${current.length}件）`
+    : "未登録";
+
+  $("monthlyDiff").textContent =
+    current.length && evCount(current) === current.length
+      ? yen(total - evSum(current))
+      : "—（未登録あり）";
+
+  $("history").innerHTML = sessions
+    .filter(s => matchesRate(s, filter))
+    .map(s => {
+      const machine = machineById(s.machine_id);
+
+      return `
+        <div class="item">
+          <b>${escapeHtml(s.played_on)} /
+          ${escapeHtml(machine?.name || "機種未設定")}</b>
+          <span class="rate-tag">
+            ${rateName(sessionRate(s))}
+          </span>
+          <div>実収支：${yen(sessionProfit(s))}</div>
+          <div>
+            登録期待値：
+            ${sessionEv(s) === null
+              ? "未登録"
+              : yen(sessionEv(s))}
+          </div>
+          <small>${escapeHtml(s.store_name || "")}</small>
+          <div class="row">
+            <button class="secondary mini"
+              data-action="edit-session"
+              data-id="${escapeHtml(s.id)}">編集</button>
+            <button class="danger mini"
+              data-action="delete-session"
+              data-id="${escapeHtml(s.id)}">削除</button>
+          </div>
         </div>
-        <div>
-          欠損・余剰：
-          ${complete
-            ? money(value.total - value.expected)
-            : "—（未登録あり）"}
-        </div>
-        <small>稼働 ${value.count}件</small>
+      `;
+    }).join("") || "稼働記録がありません";
+}
+
+function groupSessions(list, keyFn) {
+  const map = new Map();
+
+  for (const session of list) {
+    const key = keyFn(session) || "未設定";
+    const entry = map.get(key) || {
+      count: 0, profit: 0, ev: 0, evCount: 0
+    };
+
+    entry.count++;
+    entry.profit += sessionProfit(session);
+
+    const expected = sessionEv(session);
+    if (expected !== null) {
+      entry.ev += expected;
+      entry.evCount++;
+    }
+
+    map.set(key, entry);
+  }
+
+  return [...map.entries()];
+}
+
+function renderGroups(groups) {
+  return groups.map(([key, entry]) => `
+    <div class="item">
+      <b>${escapeHtml(key)}</b>
+      <div>実収支：${yen(entry.profit)}</div>
+      <div>
+        登録期待値：
+        ${entry.evCount ? yen(entry.ev) : "未登録"}
+        （${entry.evCount}/${entry.count}件）
       </div>
-    `;
-  }).join("") || "データがありません";
+      <div>
+        欠損・余剰：
+        ${entry.evCount === entry.count
+          ? yen(entry.profit - entry.ev)
+          : "—（未登録あり）"}
+      </div>
+    </div>
+  `).join("") || "データがありません";
 }
 
 function renderStats() {
-  const month = el("statsMonth").value;
-  const filter = el("statsRateFilter").value;
+  const month = $("statsMonth").value;
+  const filter = $("statsRateFilter").value;
 
   const list = sessions.filter(s =>
     (!month || String(s.played_on || "").startsWith(month)) &&
     matchesRate(s, filter)
   );
 
-  const total = list.reduce((sum, s) => sum + profit(s), 0);
-
-  el("statsTotal").textContent = money(total);
-  el("statsSummary").textContent =
-    `${month || "全期間"} / ${list.length}件 / ` +
-    `${filter === "all" ? "全レート" : rateLabel(
-      filter === "unknown" ? null : Number(filter)
-    )}`;
-
-  el("statsEv").textContent = evSummary(list);
-  el("statsDiff").textContent =
-    list.length && evCoverage(list) === list.length
-      ? money(total - evSum(list))
-      : "—（期待値未登録の稼働あり）";
-
-  el("statsCoverage").textContent =
-    `期待値登録済み ${evCoverage(list)}/${list.length}件。` +
-    "未登録の期待値は0円として扱いません。";
-
-  const months = grouped(
-    list,
-    s => String(s.played_on || "").slice(0, 7)
-  ).sort((a, b) => a[0].localeCompare(b[0]));
-
-  el("byMonth").innerHTML = groupHtml([...months].reverse());
-
-  el("byStore").innerHTML = groupHtml(
-    grouped(list, s => {
-      const store = sessionStore(s);
-      return `${s.store_name || "未設定"} / ${
-        rateLabel(sessionRate(s))
-      }`;
-    }).sort((a, b) => b[1].total - a[1].total)
+  const total = list.reduce(
+    (sum, s) => sum + sessionProfit(s), 0
   );
 
-  el("byMachine").innerHTML = groupHtml(
-    grouped(list, s =>
-      machines.find(m => m.id === s.machine_id)?.name || "機種未設定"
-    ).sort((a, b) => b[1].total - a[1].total)
+  $("statsTotal").textContent = yen(total);
+  $("statsSummary").textContent =
+    `${month || "全期間"} / ${list.length}件`;
+
+  $("statsEv").textContent = evCount(list)
+    ? yen(evSum(list))
+    : "未登録";
+
+  $("statsDiff").textContent =
+    list.length && evCount(list) === list.length
+      ? yen(total - evSum(list))
+      : "—（未登録あり）";
+
+  $("statsCoverage").textContent =
+    `期待値登録 ${evCount(list)}/${list.length}件。` +
+    "自動計算値は事後的な参考評価です。";
+
+  const byMonth = groupSessions(
+    list, s => String(s.played_on || "").slice(0, 7)
+  ).sort((a, b) => a[0].localeCompare(b[0]));
+
+  $("byMonth").innerHTML =
+    renderGroups([...byMonth].reverse());
+
+  $("byStore").innerHTML = renderGroups(
+    groupSessions(list, s =>
+      `${s.store_name || "未設定"} / ${rateName(sessionRate(s))}`
+    ).sort((a, b) => b[1].profit - a[1].profit)
+  );
+
+  $("byMachine").innerHTML = renderGroups(
+    groupSessions(list, s =>
+      machineById(s.machine_id)?.name || "機種未設定"
+    ).sort((a, b) => b[1].profit - a[1].profit)
   );
 
   drawCumulative(list);
-  drawChart(months.slice(-12));
+  drawMonthly(byMonth);
 }
 
-function drawCumulative(list) {
-  const canvas = el("cumulativeChart");
+function prepareCanvas(id, height) {
+  const canvas = $(id);
   const width = canvas.clientWidth || 300;
-  const height = 210;
   const dpr = window.devicePixelRatio || 1;
 
   canvas.width = Math.round(width * dpr);
@@ -1622,62 +1784,70 @@ function drawCumulative(list) {
 
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, width, height);
+
+  return { ctx, width, height };
+}
+
+function drawCumulative(list) {
+  const { ctx, width } =
+    prepareCanvas("cumulativeChart", 210);
 
   const sorted = [...list].sort((a, b) =>
-    String(a.played_on).localeCompare(String(b.played_on)) ||
-    String(a.created_at).localeCompare(String(b.created_at))
+    String(a.played_on).localeCompare(String(b.played_on))
   );
 
   if (!sorted.length) {
     ctx.fillStyle = "#a9b8cb";
-    ctx.fillText("データがありません", 10, 40);
+    ctx.fillText("データがありません", 10, 35);
     return;
   }
 
   let actual = 0;
   let expected = 0;
-  const actualValues = [0];
-  const expectedValues = [0];
+
+  const actualPoints = [0];
+  const expectedPoints = [0];
 
   for (const session of sorted) {
-    actual += profit(session);
-    actualValues.push(actual);
+    actual += sessionProfit(session);
+    actualPoints.push(actual);
 
-    const value = ev(session);
+    const value = sessionEv(session);
+
     if (value === null) {
-      expectedValues.push(null);
+      expectedPoints.push(null);
     } else {
       expected += value;
-      expectedValues.push(expected);
+      expectedPoints.push(expected);
     }
   }
 
   const values = [
-    ...actualValues,
-    ...expectedValues.filter(v => v !== null)
+    ...actualPoints,
+    ...expectedPoints.filter(v => v !== null)
   ];
 
   const max = Math.max(...values);
   const min = Math.min(...values);
   const range = Math.max(1, max - min);
 
-  function plot(values, color) {
+  function line(points, color) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
 
     let started = false;
 
-    values.forEach((value, index) => {
+    points.forEach((value, i) => {
       if (value === null) {
         started = false;
         return;
       }
 
       const x = 8 + (width - 16) *
-        index / Math.max(1, values.length - 1);
-      const y = 177 - (value - min) / range * 150;
+        i / Math.max(1, points.length - 1);
+
+      const y = 178 - (value - min) / range * 150;
 
       if (!started) {
         ctx.moveTo(x, y);
@@ -1690,50 +1860,42 @@ function drawCumulative(list) {
     ctx.stroke();
   }
 
-  plot(actualValues, "#79d6ac");
-  plot(expectedValues, "#eac77b");
+  line(actualPoints, "#79d6ac");
+  line(expectedPoints, "#eac77b");
 
   ctx.font = "12px sans-serif";
   ctx.fillStyle = "#79d6ac";
-  ctx.fillText("実収支", 10, 13);
+  ctx.fillText("実収支", 10, 14);
   ctx.fillStyle = "#eac77b";
-  ctx.fillText("登録期待値", 90, 13);
+  ctx.fillText("登録期待値", 90, 14);
   ctx.fillStyle = "#a9b8cb";
   ctx.fillText(
-    `上限 ${money(max)} / 下限 ${money(min)}`,
-    10,
-    202
+    `最大 ${yen(max)} / 最小 ${yen(min)}`,
+    10, 203
   );
 }
 
-function drawChart(months) {
-  const canvas = el("profitChart");
-  const width = canvas.clientWidth || 300;
-  const height = 180;
-  const dpr = window.devicePixelRatio || 1;
+function drawMonthly(groups) {
+  const { ctx, width } =
+    prepareCanvas("profitChart", 180);
 
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
+  const data = groups.slice(-12);
 
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, width, height);
-
-  if (!months.length) {
+  if (!data.length) {
     ctx.fillStyle = "#a9b8cb";
     ctx.fillText("データがありません", 10, 35);
     return;
   }
 
-  const values = months.map(x => x[1].total);
+  const values = data.map(x => x[1].profit);
   const max = Math.max(0, ...values);
   const min = Math.min(0, ...values);
   const range = Math.max(1, max - min);
   const top = 18;
   const bottom = 155;
   const zero = top + max / range * (bottom - top);
-  const slot = width / months.length;
-  const barWidth = Math.max(4, slot * 0.58);
+  const slot = width / data.length;
+  const barWidth = Math.max(4, slot * .58);
 
   ctx.strokeStyle = "#71839a";
   ctx.beginPath();
@@ -1741,68 +1903,68 @@ function drawChart(months) {
   ctx.lineTo(width, zero);
   ctx.stroke();
 
-  months.forEach(([name, value], index) => {
+  data.forEach(([month, entry], index) => {
     const x = index * slot + (slot - barWidth) / 2;
     const y = top +
-      (max - value.total) / range * (bottom - top);
+      (max - entry.profit) / range * (bottom - top);
 
-    ctx.fillStyle = value.total >= 0 ? "#79d6ac" : "#ff9b9b";
+    ctx.fillStyle =
+      entry.profit >= 0 ? "#79d6ac" : "#ff9b9b";
+
     ctx.fillRect(
-      x,
-      Math.min(y, zero),
-      barWidth,
-      Math.max(1, Math.abs(y - zero))
+      x, Math.min(y, zero),
+      barWidth, Math.max(1, Math.abs(y - zero))
     );
 
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "10px sans-serif";
-    ctx.fillText(name.slice(2), x, 174);
+    ctx.fillText(month.slice(2), x, 174);
   });
 }
 
 function renderEvMachines() {
-  const previous = el("evMachine").value;
+  const previous = $("evMachine").value;
 
-  el("evMachine").innerHTML = machines.map(machine =>
-    `<option value="${safe(machine.id)}">${safe(machine.name)}</option>`
+  $("evMachine").innerHTML = machines.map(machine =>
+    `<option value="${escapeHtml(machine.id)}">
+      ${escapeHtml(machine.name)}
+    </option>`
   ).join("");
 
   if (machines.some(m => m.id === previous)) {
-    el("evMachine").value = previous;
-  } else {
-    setEvBorder();
+    $("evMachine").value = previous;
   }
 }
 
-function setEvBorder() {
-  const machine = machines.find(
-    m => m.id === el("evMachine").value
-  );
-  el("evBorder").value = machine?.border_rate ?? "";
-}
+$("calculateEv").onclick = () => {
+  const machine = machineById($("evMachine").value);
+  const rotation = number("evRotation");
+  const spins = number("evSpins");
+  const rate = number("evRate");
 
-el("calculateEv").onclick = () => {
-  const border = num("evBorder");
-  const rotation = num("evRotation");
-  const spins = num("evSpins");
-  const rate = num("evRate");
-
-  const value = autoEvValue(
-    border,
-    spins,
-    spins / rotation * 250,
-    rate
-  );
-
-  if (value === null) {
-    msg("期待値試算の入力値を確認してください");
+  if (!machine || !(rotation > 0 && spins > 0 && rate > 0)) {
+    message("計算条件を入力してください");
     return;
   }
 
-  el("evResult").textContent = money(value);
-  el("evDetails").textContent =
-    "通常回転数 ×（250÷ボーダー − 250÷実測回転率）" +
-    " × 玉評価単価による参考試算です。正式な期待値ではありません。";
+  const expectedBalls =
+    theoreticalExpectedBalls(machine, spins);
+
+  if (expectedBalls === null) {
+    message("機種の確率・TYが未登録です");
+    return;
+  }
+
+  const requiredBalls = spins / rotation * 250;
+  const expectedProfitBalls = expectedBalls - requiredBalls;
+  const result = expectedProfitBalls * rate;
+
+  $("evResult").textContent = yen(result);
+  $("evSimulationDetails").textContent =
+    `理論期待出玉 ${expectedBalls.toFixed(1)}玉 / ` +
+    `想定使用玉数 ${requiredBalls.toFixed(1)}玉 / ` +
+    `差玉期待値 ${expectedProfitBalls.toFixed(1)}玉。` +
+    "指定した玉評価単価で換算した参考値です。";
 };
 
 function download(name, content, type) {
@@ -1819,31 +1981,29 @@ function download(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-el("export").onclick = () => {
+$("export").onclick = () => {
   download(
     "pachinko-v8-backup.json",
     JSON.stringify({
       exported_at: new Date().toISOString(),
-      machines,
-      stores,
-      sessions
+      machines, storeGroups, stores, sessions
     }, null, 2),
     "application/json"
   );
 };
 
-el("exportCsv").onclick = () => {
+$("exportCsv").onclick = () => {
   const rows = [[
     "稼働日", "機種", "店舗", "貸玉レート",
     "現金投資", "貯玉使用", "総獲得玉数",
-    "貯玉追加", "換金額", "再プレイ手数料玉数",
-    "通常回転数", "実収支", "期待値", "メモ"
+    "貯玉追加", "換金額", "通常回転数",
+    "実収支", "登録期待値", "期待値種別", "メモ"
   ]];
 
   for (const s of sessions) {
     rows.push([
       s.played_on,
-      machines.find(m => m.id === s.machine_id)?.name || "",
+      machineById(s.machine_id)?.name || "",
       s.store_name || "",
       sessionRate(s) ?? "未分類",
       s.cash_investment_yen ?? 0,
@@ -1851,10 +2011,10 @@ el("exportCsv").onclick = () => {
       s.balls_out ?? 0,
       s.details?.deposited_balls ?? 0,
       s.details?.cash_returned_yen ?? 0,
-      s.details?.replay_fee_balls ?? 0,
       s.normal_spins ?? 0,
-      profit(s),
-      ev(s) ?? "",
+      sessionProfit(s),
+      sessionEv(s) ?? "",
+      s.details?.expected_value_type || "",
       s.notes || ""
     ]);
   }
@@ -1873,106 +2033,132 @@ el("exportCsv").onclick = () => {
 };
 
 async function start() {
-  const { data: { user: current }, error } = await db.auth.getUser();
+  const { data, error } = await db.auth.getUser();
+
   if (error) {
-    fail(error);
+    errorMessage(error);
     return;
   }
 
-  user = current;
-  el("auth").classList.toggle("hidden", !!user);
-  el("app").classList.toggle("hidden", !user);
+  user = data.user;
+
+  $("auth").classList.toggle("hidden", !!user);
+  $("app").classList.toggle("hidden", !user);
 
   if (user) {
-    el("userEmail").textContent = user.email || "";
+    $("userEmail").textContent = user.email || "";
+
     try {
       await refresh();
     } catch (error) {
-      fail(error);
+      errorMessage(error);
     }
   } else {
     machines = [];
+    storeGroups = [];
     stores = [];
     sessions = [];
-    msg("メールアドレスでログインしてください");
+    message("ログインしてください");
   }
 }
 
-el("login").onclick = async () => {
+$("login").onclick = async () => {
   const { error } = await db.auth.signInWithPassword({
-    email: el("email").value.trim(),
-    password: el("password").value
+    email: val("email"),
+    password: $("password").value
   });
 
-  if (error) return fail(error);
+  if (error) return errorMessage(error);
   await start();
 };
 
-el("signup").onclick = async () => {
+$("signup").onclick = async () => {
   const { error } = await db.auth.signUp({
-    email: el("email").value.trim(),
-    password: el("password").value
+    email: val("email"),
+    password: $("password").value
   });
 
-  if (error) return fail(error);
-  msg("確認メールを確認してください");
+  if (error) return errorMessage(error);
+  message("確認メールを確認してください");
 };
 
-el("logout").onclick = async () => {
+$("logout").onclick = async () => {
   const { error } = await db.auth.signOut();
-  if (error) return fail(error);
+  if (error) return errorMessage(error);
   await start();
 };
 
-el("storePlayRate").addEventListener("change", updateStoreRate);
-el("storeExchangeUnits").addEventListener(
-  "input",
-  updateExchangePreview
+$("jackpotDenominator").addEventListener(
+  "input", updateMachineBorderPreview
 );
-el("storeSelect").addEventListener("change", setStoreTerms);
+$("averageTy").addEventListener(
+  "input", updateMachineBorderPreview
+);
 
-el("machineSelect").addEventListener("change", () => {
-  const machine = machines.find(
-    m => m.id === el("machineSelect").value
+for (const rate of [4, 1]) {
+  $(`enable${rate}`).addEventListener(
+    "change", updateEnabledRates
   );
-  el("autoBorder").value = machine?.border_rate ?? "";
-  updateEvPreview();
+  $(`exchange${rate}`).addEventListener(
+    "input", () => updateExchangePreview(rate)
+  );
+}
+
+$("storeGroupSelect").addEventListener("change", () => {
+  updateAvailableRates();
+  updateSessionPreview();
 });
 
-for (const id of ["ballsOut", "deposited", "rate"]) {
-  el(id).addEventListener("input", updateExchangeAmount);
+$("playRateSelect").addEventListener(
+  "change", updateSessionPreview
+);
+$("machineSelect").addEventListener(
+  "change", updateSessionPreview
+);
+
+for (const id of ["ballsOut", "deposited"]) {
+  $(id).addEventListener("input", () => {
+    updateExchangeAmount();
+    updateBalancePreview();
+  });
 }
 
-for (const id of ["savedBalls", "deposited", "feeBalls"]) {
-  el(id).addEventListener("input", updateBalancePreview);
+for (const id of ["savedBalls", "feeBalls"]) {
+  $(id).addEventListener("input", () => {
+    updateBalancePreview();
+    updateEvPreview();
+  });
 }
 
-for (const id of [
-  "sessionEv", "autoBorder", "autoRate", "spins", "ballsIn"
-]) {
-  el(id).addEventListener("input", updateEvPreview);
+for (const id of ["ballsIn", "spins"]) {
+  $(id).addEventListener("input", () => {
+    updateRotationPreview();
+    updateEvPreview();
+  });
 }
 
-el("evMode").addEventListener("change", updateEvFields);
-el("homeRateFilter").addEventListener("change", renderHome);
-el("statsRateFilter").addEventListener("change", renderStats);
-el("statsMonth").addEventListener("change", renderStats);
-el("evMachine").addEventListener("change", setEvBorder);
+$("cash").addEventListener("input", updateEvPreview);
+$("sessionEv").addEventListener("input", updateEvPreview);
+$("evMode").addEventListener("change", updateEvFields);
+$("homeRateFilter").addEventListener("change", renderHome);
+$("statsRateFilter").addEventListener("change", renderStats);
+$("statsMonth").addEventListener("change", renderStats);
 
-el("allMonths").onclick = () => {
-  el("statsMonth").value = "";
+$("allMonths").onclick = () => {
+  $("statsMonth").value = "";
   renderStats();
 };
 
-el("cancelStore").onclick = clearStore;
-el("cancelMachine").onclick = clearMachine;
-el("cancelSession").onclick = clearSession;
+$("cancelMachine").onclick = clearMachine;
+$("cancelStore").onclick = clearStoreForm;
+$("cancelSession").onclick = clearSession;
 
-el("date").value = today();
-el("statsMonth").value = today().slice(0, 7);
+$("date").value = today();
+$("statsMonth").value = today().slice(0, 7);
 
-updateStoreRate();
-updateEvFields();
+clearStoreForm();
+clearMachine();
+clearSession();
 
 db.auth.onAuthStateChange(() => {
   setTimeout(start, 0);
