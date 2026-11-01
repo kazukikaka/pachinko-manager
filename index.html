@@ -2931,4 +2931,144 @@ $("libraryResults").onclick = e => {
 
 </script>
 </body>
+
+<style id="login-design-custom">
+/* ログイン画面だけを変更 */
+body:has(#auth:not(.hidden)) {
+  background:
+    radial-gradient(ellipse at 50% 15%, #5363aa77, transparent 55%),
+    radial-gradient(ellipse at 90% 65%, #7d4d9970, transparent 45%),
+    linear-gradient(160deg, #111a35, #22244c 55%, #10172e);
+  color: #f5f0ff;
+  min-height: 100dvh;
+}
+
+body:has(#auth:not(.hidden)) > header {
+  display: none;
+}
+
+#auth:not(.hidden) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  max-width: 480px;
+  min-height: 92dvh;
+  margin: 0 auto;
+  padding: 28px 22px 36px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#auth:not(.hidden)::before {
+  content: "✧";
+  position: absolute;
+  top: 8%;
+  right: 9%;
+  font-size: 115px;
+  font-weight: 100;
+  color: #d9d5ff44;
+  text-shadow: 0 0 45px #aaa7ff;
+  pointer-events: none;
+}
+
+#auth:not(.hidden)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 29%,
+      transparent 0 38px,
+      #c7baff13 39px 40px
+    );
+  pointer-events: none;
+}
+
+#auth .login-brand {
+  text-align: center;
+  margin: 35px 0 30px;
+}
+
+#auth .login-brand small {
+  display: block;
+  color: #b4baff;
+  letter-spacing: .28em;
+  font-size: 10px;
+  margin-bottom: 12px;
+}
+
+#auth .login-brand strong {
+  display: block;
+  font-size: clamp(25px, 7vw, 35px);
+  letter-spacing: .12em;
+  color: #fff;
+  text-shadow: 0 0 22px #a6a9ff70;
+}
+
+#auth .login-card {
+  position: relative;
+  padding: 27px 22px;
+  border: 1px solid #c9c8ff55;
+  border-radius: 24px;
+  background: linear-gradient(
+    145deg,
+    #ffffff20,
+    #b8a7e80c
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px #0005;
+}
+
+#auth .login-card h2 {
+  color: #fff;
+  letter-spacing: .18em;
+  font-size: 20px;
+}
+
+#auth .login-card p,
+#auth .login-card label {
+  color: #d5d6f1;
+}
+
+#auth input {
+  color: #fff;
+  background: #10183299;
+  border: 1px solid #a8a9df66;
+}
+
+#auth input::placeholder {
+  color: #a6a9c3;
+}
+
+#auth button:not(.secondary) {
+  background: linear-gradient(
+    110deg,
+    #5879e8,
+    #9b68d9
+  );
+  color: white;
+  box-shadow: 0 6px 22px #7372e755;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #auth .login-card {
+    animation: loginAppear .7s ease both;
+  }
+  @keyframes loginAppear {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+</style>
+
 </html>
