@@ -1,0 +1,248 @@
+
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>パチンコ稼働管理</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#f4f6fa;padding:18px 16px 90px}
+h1{font-size:23px;margin:12px 0 24px}
+h2{font-size:18px}
+.card{background:#1d293b;border:1px solid #344256;border-radius:16px;padding:16px;margin:14px 0}
+input,select,textarea,button{font:inherit;width:100%;padding:13px;margin:6px 0 12px;border-radius:10px;border:1px solid #45566e;background:#111c2d;color:white}
+button{background:#3976dc;border:0;font-weight:600}
+button.secondary{background:#344256}
+button.danger{background:#a93e48}
+label{display:block;color:#b9c6d9;font-size:13px;margin-top:8px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#1d293b;display:flex;gap:4px;padding:10px}
+nav button{font-size:13px;padding:12px 4px;margin:0}
+.hidden{display:none!important}
+small,.muted{color:#a9b8cb}
+.stat{font-size:26px;font-weight:700}
+.item{border-bottom:1px solid #45566e;padding:12px 0}
+.row{display:flex;gap:8px}
+.row>*{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<h1>パチンコ稼働管理</h1>
+<div id="message" class="muted"></div>
+
+<section id="auth" class="card">
+<h2>ログイン</h2>
+<label>メールアドレス</label>
+<input id="email" type="email" autocomplete="email">
+<label>パスワード（6文字以上）</label>
+<input id="password" type="password" autocomplete="current-password">
+<button id="login">ログイン</button>
+<button id="signup" class="secondary">新規登録</button>
+<small>新規登録後、確認メールのリンクを開いてください。</small>
+</section>
+
+<div id="app" class="hidden">
+<section id="home">
+<div class="card">
+<h2>今月の収支</h2>
+<div class="stat" id="monthly">¥0</div>
+<div id="monthCount" class="muted"></div>
+</div>
+<div class="card">
+<h2>稼働履歴</h2>
+<div id="history"></div>
+</div>
+</section>
+
+<section id="machinesPage" class="hidden">
+<div class="card">
+<h2>機種登録</h2>
+<label>機種名</label><input id="machineName">
+<label>メーカー</label><input id="maker">
+<label>ボーダー（250玉あたり）</label>
+<input id="border" type="number" step="0.01">
+<button id="saveMachine">機種を登録</button>
+</div>
+<div class="card"><h2>登録済み機種</h2><div id="machineList"></div></div>
+</section>
+
+<section id="sessionsPage" class="hidden">
+<div class="card">
+<h2>稼働記録を追加</h2>
+<label>稼働日</label><input id="date" type="date">
+<label>機種</label><select id="machineSelect"></select>
+<label>店舗</label><input id="store">
+<label>現金投資（円）</label><input id="cash" type="number" min="0" value="0">
+<label>使用玉数（玉）</label><input id="ballsIn" type="number" min="0" value="0">
+<label>回収玉数（玉）</label><input id="ballsOut" type="number" min="0" value="0">
+<label>通常回転数</label><input id="spins" type="number" min="0" value="0">
+<label>換金単価（円／玉）</label><input id="rate" type="number" step="0.01" value="4">
+<label>メモ</label><textarea id="notes"></textarea>
+<button id="saveSession">記録を保存</button>
+<small>収支＝回収玉数×換金単価−現金投資。持ち玉の追加投入などがある場合、この簡易式だけでは正確な収支になりません。</small>
+</div>
+</section>
+
+<section id="settingsPage" class="hidden">
+<div class="card">
+<h2>アカウント</h2>
+<p id="userEmail"></p>
+<button id="export" class="secondary">データをJSON出力</button>
+<button id="logout" class="danger">ログアウト</button>
+</div>
+</section>
+
+<nav>
+<button data-page="home">ホーム</button>
+<button data-page="machinesPage">機種</button>
+<button data-page="sessionsPage">稼働入力</button>
+<button data-page="settingsPage">設定</button>
+</nav>
+</div>
+
+<script type="module">
+import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db=createClient(
+ "https://ezhhldztqloffumweklk.supabase.co",
+ "sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF"
+);
+const el=id=>document.getElementById(id);
+const money=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+const num=id=>Number(el(id).value)||0;
+let user=null,machines=[],sessions=[];
+
+function msg(s){el("message").textContent=s}
+function safe(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ })[c]);
+}
+function page(id){
+ for(const p of ["home","machinesPage","sessionsPage","settingsPage"])
+ el(p).classList.toggle("hidden",p!==id);
+}
+document.querySelectorAll("[data-page]").forEach(b=>
+ b.onclick=()=>page(b.dataset.page)
+);
+function error(e){
+ msg(e?.message||"処理に失敗しました");
+}
+async function refresh(){
+ const [m,s]=await Promise.all([
+ db.from("machines").select("*").order("created_at",{ascending:false}),
+ db.from("sessions").select("*").order("played_on",{ascending:false})
+ ]);
+ if(m.error)throw m.error;
+ if(s.error)throw s.error;
+ machines=m.data;sessions=s.data;
+ render();
+}
+function render(){
+ el("machineSelect").innerHTML=machines.map(m=>
+ `<option value="${m.id}">${safe(m.name)}</option>`).join("");
+ el("machineList").innerHTML=machines.map(m=>
+ `<div class="item"><b>${safe(m.name)}</b>
+ <div class="muted">${safe(m.manufacturer)}
+ / ボーダー ${m.border_rate??"未設定"}</div></div>`
+ ).join("")||"機種がありません";
+
+ const month=new Date().toLocaleDateString("sv-SE").slice(0,7);
+ const current=sessions.filter(s=>s.played_on.startsWith(month));
+ const profit=s=>Number(s.details?.actual_profit_yen)||0;
+ el("monthly").textContent=money(current.reduce((a,s)=>a+profit(s),0));
+ el("monthCount").textContent=`${current.length}件の稼働`;
+
+ el("history").innerHTML=sessions.map(s=>{
+ const machine=machines.find(m=>m.id===s.machine_id);
+ const p=profit(s);
+ const used=Number(s.balls_in)||0;
+ const spins=Number(s.normal_spins)||0;
+ const rotation=used>0?(spins/used*250).toFixed(2):"算出不可";
+ return `<div class="item">
+ <b>${safe(s.played_on)} / ${safe(machine?.name||"機種未設定")}</b>
+ <div>${money(p)} / 通常 ${spins}回転</div>
+ <small>250玉あたり回転数：${rotation}</small>
+ </div>`;
+ }).join("")||"まだ記録がありません";
+}
+async function start(){
+ const {data:{user:u}}=await db.auth.getUser();
+ user=u;
+ el("auth").classList.toggle("hidden",!!user);
+ el("app").classList.toggle("hidden",!user);
+ if(user){
+ el("userEmail").textContent=user.email;
+ try{await refresh()}catch(e){error(e)}
+ }else{msg("メールアドレスでログインしてください")}
+}
+el("login").onclick=async()=>{
+ const {error:e}=await db.auth.signInWithPassword({
+ email:el("email").value.trim(),
+ password:el("password").value
+ });
+ if(e)return error(e);
+ await start();
+};
+el("signup").onclick=async()=>{
+ const {error:e}=await db.auth.signUp({
+ email:el("email").value.trim(),
+ password:el("password").value
+ });
+ if(e)return error(e);
+ msg("登録を受け付けました。確認メールをご確認ください。");
+};
+el("saveMachine").onclick=async()=>{
+ const name=el("machineName").value.trim();
+ if(!name)return msg("機種名を入力してください");
+ const {error:e}=await db.from("machines").insert({
+ user_id:user.id,name,
+ manufacturer:el("maker").value.trim(),
+ border_rate:el("border").value?num("border"):null
+ });
+ if(e)return error(e);
+ el("machineName").value="";
+ msg("機種を保存しました");
+ await refresh();
+};
+el("date").value=new Date().toLocaleDateString("sv-SE");
+el("saveSession").onclick=async()=>{
+ const rate=num("rate");
+ const actual=num("ballsOut")*rate-num("cash");
+ const {error:e}=await db.from("sessions").insert({
+ user_id:user.id,
+ machine_id:el("machineSelect").value||null,
+ played_on:el("date").value,
+ store_name:el("store").value,
+ cash_investment_yen:num("cash"),
+ balls_in:num("ballsIn"),
+ balls_out:num("ballsOut"),
+ normal_spins:num("spins"),
+ notes:el("notes").value,
+ details:{exchange_rate_yen_per_ball:rate,actual_profit_yen:actual}
+ });
+ if(e)return error(e);
+ msg("稼働を保存しました");
+ await refresh();page("home");
+};
+el("logout").onclick=async()=>{
+ await db.auth.signOut();await start();
+};
+el("export").onclick=()=>{
+ const blob=new Blob([JSON.stringify({machines,sessions},null,2)],{
+ type:"application/json"
+ });
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="pachinko-backup.json";
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+db.auth.onAuthStateChange(()=>setTimeout(start,0));
+start();
+</script>
+</body>
+</html>
