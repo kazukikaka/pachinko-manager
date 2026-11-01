@@ -9,18 +9,18 @@
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,sans-serif;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:#101827;color:#f4f6fa;padding:18px 16px 90px}
+body{margin:0;background:#101827;color:#f4f6fa;padding:18px 16px 100px}
 h1{font-size:23px;margin:12px 0 24px}
-h2{font-size:18px}
+h2{font-size:18px;margin:0 0 12px}
 .card{background:#1d293b;border:1px solid #344256;border-radius:16px;padding:16px;margin:14px 0}
-input,select,textarea,button{font:inherit;width:100%;padding:13px;margin:6px 0 12px;border-radius:10px;border:1px solid #45566e;background:#111c2d;color:white}
+input,select,textarea,button{font:inherit;width:100%;padding:12px;margin:6px 0 12px;border-radius:10px;border:1px solid #45566e;background:#111c2d;color:white}
 button{background:#3976dc;border:0;font-weight:600}
 button.secondary{background:#344256}
 button.danger{background:#a93e48}
-button:disabled{opacity:.55}
+button:disabled{opacity:.5}
 label{display:block;color:#b9c6d9;font-size:13px;margin-top:8px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#1d293b;display:flex;gap:4px;padding:10px}
-nav button{font-size:13px;padding:12px 4px;margin:0}
+nav{position:fixed;bottom:0;left:0;right:0;background:#1d293b;display:flex;gap:4px;padding:10px;z-index:10}
+nav button{font-size:12px;padding:12px 2px;margin:0}
 .hidden{display:none!important}
 small,.muted{color:#a9b8cb}
 .stat{font-size:26px;font-weight:700}
@@ -28,32 +28,38 @@ small,.muted{color:#a9b8cb}
 .item:last-child{border-bottom:0}
 .row{display:flex;gap:8px}
 .row>*{flex:1;min-width:0}
-.delete-btn{font-size:13px;padding:9px;margin-top:12px}
+.mini{font-size:13px;padding:9px}
+.positive{color:#79d6ac}
+.negative{color:#ff9b9b}
+.notice{font-size:12px;line-height:1.6;color:#bdc9db}
+.pill{display:inline-block;background:#33445e;padding:4px 8px;border-radius:8px;font-size:12px;margin:4px 4px 4px 0}
+#message{min-height:20px;margin-bottom:6px;white-space:pre-wrap}
+canvas{width:100%;height:180px;display:block}
+summary{cursor:pointer;padding:8px 0}
 </style>
 </head>
 <body>
-
 <h1>パチンコ稼働管理</h1>
-<div id="message" class="muted" role="status"></div>
+<div id="message" role="status" class="muted"></div>
 
 <section id="auth" class="card">
 <h2>ログイン</h2>
 <label>メールアドレス</label>
 <input id="email" type="email" autocomplete="email">
-<label>パスワード（6文字以上）</label>
+<label>パスワード</label>
 <input id="password" type="password" autocomplete="current-password">
 <button id="login">ログイン</button>
 <button id="signup" class="secondary">新規登録</button>
-<small>新規登録後、確認メールのリンクを開いてください。</small>
+<small>新規登録後、確認メールを開いてください。</small>
 </section>
 
 <div id="app" class="hidden">
-
 <section id="home">
 <div class="card">
 <h2>今月の収支</h2>
 <div class="stat" id="monthly">¥0</div>
-<div id="monthCount" class="muted"></div>
+<div class="muted" id="monthCount"></div>
+<small>登録された実収支の合計（過去の簡易式データを含む）</small>
 </div>
 <div class="card">
 <h2>稼働履歴</h2>
@@ -63,14 +69,15 @@ small,.muted{color:#a9b8cb}
 
 <section id="machinesPage" class="hidden">
 <div class="card">
-<h2>機種登録</h2>
+<h2 id="machineFormTitle">機種登録</h2>
 <label>機種名</label>
 <input id="machineName">
 <label>メーカー</label>
 <input id="maker">
 <label>ボーダー（250玉あたり）</label>
-<input id="border" type="number" step="0.01">
+<input id="border" type="number" min="0" step="0.01">
 <button id="saveMachine">機種を登録</button>
+<button id="cancelMachine" class="secondary hidden">編集をキャンセル</button>
 </div>
 <div class="card">
 <h2>登録済み機種</h2>
@@ -80,7 +87,7 @@ small,.muted{color:#a9b8cb}
 
 <section id="sessionsPage" class="hidden">
 <div class="card">
-<h2>稼働記録を追加</h2>
+<h2 id="sessionFormTitle">稼働記録を追加</h2>
 <label>稼働日</label>
 <input id="date" type="date">
 <label>機種</label>
@@ -88,23 +95,79 @@ small,.muted{color:#a9b8cb}
 <label>店舗</label>
 <input id="store">
 <label>現金投資（円）</label>
-<input id="cash" type="number" min="0" value="0">
-<label>使用玉数（玉）</label>
-<input id="ballsIn" type="number" min="0" value="0">
+<input id="cash" type="number" min="0" step="1" value="0">
+<label>貯玉・持ち玉からの投資（玉）</label>
+<input id="savedBalls" type="number" min="0" step="1" value="0">
 <label>回収玉数（玉）</label>
-<input id="ballsOut" type="number" min="0" value="0">
+<input id="ballsOut" type="number" min="0" step="1" value="0">
+<label>通常回転に使った玉数（玉・任意）</label>
+<input id="ballsIn" type="number" min="0" step="1" value="0">
 <label>通常回転数</label>
-<input id="spins" type="number" min="0" value="0">
-<label>換金単価（円／玉）</label>
-<input id="rate" type="number" step="0.01" value="4">
+<input id="spins" type="number" min="0" step="1" value="0">
+<label>交換単価（円／玉）</label>
+<input id="rate" type="number" min="0.01" step="0.01" value="4">
+<label>現金購入単価（円／玉）</label>
+<input id="purchaseRate" type="number" min="0.01" step="0.01" value="4">
+<label>実収支の直接入力（円・任意）</label>
+<input id="manualProfit" type="number" step="1" placeholder="空欄なら自動計算">
 <label>メモ</label>
 <textarea id="notes"></textarea>
+<div class="notice">
+自動収支＝回収玉数×交換単価−現金投資−貯玉投資玉数×交換単価。
+現金購入玉数と通常回転に使った玉数は異なります。
+景品交換・再プレー手数料等は別途調整が必要です。
+厳密な収支が分かる場合は直接入力してください。
+</div>
 <button id="saveSession">記録を保存</button>
-<small>
-収支＝回収玉数×換金単価−現金投資。
-持ち玉の追加投入などがある場合、この簡易式だけでは
-正確な収支になりません。
-</small>
+<button id="cancelSession" class="secondary hidden">編集をキャンセル</button>
+</div>
+</section>
+
+<section id="statsPage" class="hidden">
+<div class="card">
+<h2>収支分析</h2>
+<label>対象月</label>
+<input id="statsMonth" type="month">
+<button id="allMonths" class="secondary mini">全期間を表示</button>
+<div class="stat" id="statsTotal">¥0</div>
+<div id="statsSummary" class="muted"></div>
+<canvas id="profitChart" height="180"></canvas>
+</div>
+<div class="card">
+<h2>月別</h2>
+<div id="byMonth"></div>
+</div>
+<div class="card">
+<h2>店舗別</h2>
+<div id="byStore"></div>
+</div>
+<div class="card">
+<h2>機種別</h2>
+<div id="byMachine"></div>
+</div>
+</section>
+
+<section id="evPage" class="hidden">
+<div class="card">
+<h2>簡易期待値シミュレーション</h2>
+<div class="notice">
+これはボーダー・実測回転率からの差分試算であり、正式な期待値ではありません。
+大当たり出玉、ラウンド振分、LT、電サポ中の増減、持ち玉比率、交換条件等を織り込んでいません。
+投資判断には使用しないでください。
+</div>
+<label>対象機種</label>
+<select id="evMachine"></select>
+<label>ボーダー（250玉あたり）</label>
+<input id="evBorder" type="number" min="0.01" step="0.01">
+<label>実測回転率（250玉あたり）</label>
+<input id="evRotation" type="number" min="0.01" step="0.01">
+<label>通常回転数</label>
+<input id="evSpins" type="number" min="0" step="1">
+<label>玉の評価単価（円／玉）</label>
+<input id="evRate" type="number" min="0.01" step="0.01" value="4">
+<button id="calculateEv">参考試算</button>
+<div class="stat" id="evResult">—</div>
+<div id="evDetails" class="notice"></div>
 </div>
 </section>
 
@@ -112,7 +175,9 @@ small,.muted{color:#a9b8cb}
 <div class="card">
 <h2>アカウント</h2>
 <p id="userEmail"></p>
-<button id="export" class="secondary">データをJSON出力</button>
+<button id="export" class="secondary">JSONバックアップ</button>
+<button id="exportCsv" class="secondary">稼働記録をCSV出力</button>
+<small>バックアップは端末に保存してください。JSONの復元機能は未実装です。</small>
 <button id="logout" class="danger">ログアウト</button>
 </div>
 </section>
@@ -120,10 +185,11 @@ small,.muted{color:#a9b8cb}
 <nav>
 <button data-page="home">ホーム</button>
 <button data-page="machinesPage">機種</button>
-<button data-page="sessionsPage">稼働入力</button>
+<button data-page="sessionsPage">入力</button>
+<button data-page="statsPage">分析</button>
+<button data-page="evPage">期待値</button>
 <button data-page="settingsPage">設定</button>
 </nav>
-
 </div>
 
 <script type="module">
@@ -135,13 +201,21 @@ const db=createClient(
 );
 
 const el=id=>document.getElementById(id);
-const money=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+const money=n=>(n<0?"-¥":"¥")+Math.round(Math.abs(n)).toLocaleString("ja-JP");
 const num=id=>Number(el(id).value)||0;
+
+const today=()=>{
+ const d=new Date();
+ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
 
 let user=null;
 let machines=[];
 let sessions=[];
 let busy=false;
+let editingSession=null;
+let editingMachine=null;
+let activePage="home";
 
 function msg(s){
  el("message").textContent=s;
@@ -157,30 +231,34 @@ function safe(s){
  })[c]);
 }
 
+function fail(e){
+ msg(e?.message||"処理に失敗しました");
+}
+
+function profit(s){
+ const v=s.details?.actual_profit_yen;
+ return Number(v)||0;
+}
+
 function page(id){
- for(const p of ["home","machinesPage","sessionsPage","settingsPage"]){
+ activePage=id;
+ for(const p of ["home","machinesPage","sessionsPage","statsPage","evPage","settingsPage"]){
   el(p).classList.toggle("hidden",p!==id);
  }
+ if(id==="statsPage")renderStats();
+ if(id==="evPage")renderEvMachines();
 }
 
 document.querySelectorAll("[data-page]").forEach(b=>{
  b.onclick=()=>page(b.dataset.page);
 });
 
-function error(e){
- msg(e?.message||"処理に失敗しました");
-}
-
 async function refresh(){
  if(!user)return;
 
  const [m,s]=await Promise.all([
-  db.from("machines")
-   .select("*")
-   .order("created_at",{ascending:false}),
-  db.from("sessions")
-   .select("*")
-   .order("played_on",{ascending:false})
+  db.from("machines").select("*").order("created_at",{ascending:false}),
+  db.from("sessions").select("*").order("played_on",{ascending:false})
  ]);
 
  if(m.error)throw m.error;
@@ -192,14 +270,14 @@ async function refresh(){
 }
 
 function render(){
- const selected=el("machineSelect").value;
+ const chosen=el("machineSelect").value;
 
  el("machineSelect").innerHTML=machines.map(m=>
   `<option value="${m.id}">${safe(m.name)}</option>`
  ).join("");
 
- if(machines.some(m=>m.id===selected)){
-  el("machineSelect").value=selected;
+ if(machines.some(m=>m.id===chosen)){
+  el("machineSelect").value=chosen;
  }
 
  el("machineList").innerHTML=machines.map(m=>{
@@ -208,85 +286,514 @@ function render(){
   return `<div class="item">
    <b>${safe(m.name)}</b>
    <div class="muted">
-    ${safe(m.manufacturer)}
-    / ボーダー ${m.border_rate??"未設定"}
+    ${safe(m.manufacturer)} / ボーダー ${m.border_rate??"未設定"}
    </div>
-   ${
-    used
-    ? `<small>稼働履歴があるため削除できません</small>`
-    : `<button type="button"
-       class="danger delete-btn"
-       data-delete="machine"
-       data-id="${m.id}">
-       機種を削除
-       </button>`
-   }
+   <div class="row">
+    <button class="secondary mini" data-action="edit-machine" data-id="${m.id}">編集</button>
+    <button class="danger mini" data-action="delete-machine" data-id="${m.id}" ${used?"disabled":""}>削除</button>
+   </div>
+   ${used?"<small>稼働履歴があるため削除不可</small>":""}
   </div>`;
  }).join("")||"機種がありません";
 
- const month=new Date().toLocaleDateString("sv-SE").slice(0,7);
+ const month=today().slice(0,7);
  const current=sessions.filter(s=>
   String(s.played_on||"").startsWith(month)
  );
-
- const profit=s=>Number(s.details?.actual_profit_yen)||0;
 
  el("monthly").textContent=money(
   current.reduce((a,s)=>a+profit(s),0)
  );
 
- el("monthCount").textContent=
-  `${current.length}件の稼働`;
+ el("monthCount").textContent=`${current.length}件の稼働`;
 
  el("history").innerHTML=sessions.map(s=>{
   const machine=machines.find(m=>m.id===s.machine_id);
-  const p=profit(s);
   const used=Number(s.balls_in)||0;
   const spins=Number(s.normal_spins)||0;
-
-  const rotation=used>0
-   ?(spins/used*250).toFixed(2)
-   :"算出不可";
+  const rot=used>0?(spins/used*250).toFixed(2):"算出不可";
 
   return `<div class="item">
-   <b>
-    ${safe(s.played_on)} /
-    ${safe(machine?.name||"機種未設定")}
-   </b>
-   <div>
-    ${money(p)} / 通常 ${spins}回転
+   <b>${safe(s.played_on)} / ${safe(machine?.name||"機種未設定")}</b>
+   <div>${money(profit(s))} / 通常 ${spins}回転</div>
+   <small>${safe(s.store_name||"")}　250玉あたり回転数：${rot}</small>
+   <div class="row">
+    <button class="secondary mini" data-action="edit-session" data-id="${s.id}">編集</button>
+    <button class="danger mini" data-action="delete-session" data-id="${s.id}">削除</button>
    </div>
-   <small>
-    250玉あたり回転数：${rotation}
-   </small>
-   <button type="button"
-    class="danger delete-btn"
-    data-delete="session"
-    data-id="${s.id}">
-    この稼働記録を削除
-   </button>
   </div>`;
  }).join("")||"まだ記録がありません";
+
+ renderStats();
+ renderEvMachines();
 }
 
-async function start(){
- const {data:{user:u},error:e}=await db.auth.getUser();
+function clearMachine(){
+ editingMachine=null;
+ el("machineFormTitle").textContent="機種登録";
+ el("saveMachine").textContent="機種を登録";
+ el("cancelMachine").classList.add("hidden");
 
- if(e && !u){
-  user=null;
- }else{
-  user=u;
+ for(const id of ["machineName","maker","border"]){
+  el(id).value="";
  }
+}
+
+function clearSession(){
+ editingSession=null;
+ el("sessionFormTitle").textContent="稼働記録を追加";
+ el("saveSession").textContent="記録を保存";
+ el("cancelSession").classList.add("hidden");
+ el("date").value=today();
+
+ for(const id of ["cash","savedBalls","ballsOut","ballsIn","spins"]){
+  el(id).value="0";
+ }
+
+ el("rate").value="4";
+ el("purchaseRate").value="4";
+
+ for(const id of ["store","notes","manualProfit"]){
+  el(id).value="";
+ }
+}
+
+el("cancelMachine").onclick=clearMachine;
+el("cancelSession").onclick=clearSession;
+
+function editMachine(id){
+ const m=machines.find(x=>x.id===id);
+ if(!m)return;
+
+ editingMachine=id;
+ el("machineName").value=m.name||"";
+ el("maker").value=m.manufacturer||"";
+ el("border").value=m.border_rate??"";
+ el("machineFormTitle").textContent="機種を編集";
+ el("saveMachine").textContent="変更を保存";
+ el("cancelMachine").classList.remove("hidden");
+
+ page("machinesPage");
+ window.scrollTo(0,0);
+}
+
+function editSession(id){
+ const s=sessions.find(x=>x.id===id);
+ if(!s)return;
+
+ editingSession=id;
+ el("date").value=s.played_on||today();
+ el("machineSelect").value=s.machine_id||"";
+ el("store").value=s.store_name||"";
+ el("cash").value=s.cash_investment_yen??0;
+ el("savedBalls").value=s.details?.saved_balls_invested??0;
+ el("ballsOut").value=s.balls_out??0;
+ el("ballsIn").value=s.balls_in??0;
+ el("spins").value=s.normal_spins??0;
+ el("rate").value=s.details?.exchange_rate_yen_per_ball??4;
+ el("purchaseRate").value=s.details?.purchase_rate_yen_per_ball??4;
+ el("manualProfit").value=s.details?.profit_manually_entered
+  ?s.details?.actual_profit_yen??""
+  :"";
+ el("notes").value=s.notes||"";
+ el("sessionFormTitle").textContent="稼働記録を編集";
+ el("saveSession").textContent="変更を保存";
+ el("cancelSession").classList.remove("hidden");
+
+ page("sessionsPage");
+ window.scrollTo(0,0);
+}
+
+async function work(button,fn){
+ if(busy)return;
+ busy=true;
+ button.disabled=true;
+
+ try{
+  await fn();
+ }catch(e){
+  fail(e);
+ }finally{
+  busy=false;
+  button.disabled=false;
+ }
+}
+
+el("saveMachine").onclick=()=>work(el("saveMachine"),async()=>{
+ if(!user)throw Error("ログインしてください");
+
+ const name=el("machineName").value.trim();
+ if(!name)throw Error("機種名を入力してください");
+
+ const border=el("border").value===""?null:num("border");
+ if(border!==null&&border<=0){
+  throw Error("ボーダーは正の数にしてください");
+ }
+
+ const payload={
+  name,
+  manufacturer:el("maker").value.trim(),
+  border_rate:border
+ };
+
+ const q=editingMachine
+  ?db.from("machines").update(payload).eq("id",editingMachine).eq("user_id",user.id)
+  :db.from("machines").insert({...payload,user_id:user.id});
+
+ const {error}=await q;
+ if(error)throw error;
+
+ clearMachine();
+ await refresh();
+ msg("機種を保存しました");
+});
+
+el("saveSession").onclick=()=>work(el("saveSession"),async()=>{
+ if(!user)throw Error("ログインしてください");
+ if(!el("date").value)throw Error("日付を入力してください");
+ if(!el("machineSelect").value)throw Error("機種を登録してください");
+
+ for(const id of ["cash","savedBalls","ballsOut","ballsIn","spins"]){
+  if(num(id)<0)throw Error("負の数量は入力できません");
+ }
+
+ if(num("rate")<=0||num("purchaseRate")<=0){
+  throw Error("単価は正の数にしてください");
+ }
+
+ const existing=editingSession
+  ?sessions.find(s=>s.id===editingSession)
+  :null;
+
+ const rate=num("rate");
+ const manual=el("manualProfit").value.trim()!=="";
+ const actual=manual
+  ?num("manualProfit")
+  :num("ballsOut")*rate-num("cash")-num("savedBalls")*rate;
+
+ const details={
+  ...(existing?.details||{}),
+  exchange_rate_yen_per_ball:rate,
+  purchase_rate_yen_per_ball:num("purchaseRate"),
+  saved_balls_invested:num("savedBalls"),
+  profit_manually_entered:manual,
+  actual_profit_yen:actual,
+  profit_formula_version:"v2"
+ };
+
+ const payload={
+  machine_id:el("machineSelect").value,
+  played_on:el("date").value,
+  store_name:el("store").value.trim(),
+  cash_investment_yen:num("cash"),
+  balls_in:num("ballsIn"),
+  balls_out:num("ballsOut"),
+  normal_spins:num("spins"),
+  notes:el("notes").value,
+  details
+ };
+
+ const q=editingSession
+  ?db.from("sessions").update(payload).eq("id",editingSession).eq("user_id",user.id)
+  :db.from("sessions").insert({...payload,user_id:user.id});
+
+ const {error}=await q;
+ if(error)throw error;
+
+ clearSession();
+ await refresh();
+ page("home");
+ msg("稼働記録を保存しました");
+});
+
+async function deleteRecord(type,id){
+ if(!user)return;
+
+ const isSession=type==="session";
+ const record=(isSession?sessions:machines).find(x=>x.id===id);
+
+ if(!record)return msg("対象が見つかりません");
+
+ if(!isSession&&sessions.some(s=>s.machine_id===id)){
+  return msg("稼働履歴がある機種は削除できません");
+ }
+
+ const label=isSession
+  ?`${record.played_on}の稼働記録`
+  :`機種「${record.name}」`;
+
+ if(!confirm(`${label}を完全に削除しますか？\nこの操作は取り消せません。`)){
+  return;
+ }
+
+ await work(el("message"),async()=>{
+  const {data,error}=await db.from(isSession?"sessions":"machines")
+   .delete()
+   .eq("id",id)
+   .eq("user_id",user.id)
+   .select("id");
+
+  if(error)throw error;
+  if(!data?.length)throw Error("削除できませんでした");
+
+  await refresh();
+  msg(`${label}を削除しました`);
+ });
+}
+
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button[data-action]");
+ if(!b||busy)return;
+
+ const id=b.dataset.id;
+ const act=b.dataset.action;
+
+ if(act==="edit-machine")editMachine(id);
+ if(act==="edit-session")editSession(id);
+ if(act==="delete-machine")deleteRecord("machine",id);
+ if(act==="delete-session")deleteRecord("session",id);
+});
+
+function grouped(list,key){
+ const m=new Map();
+
+ for(const s of list){
+  const k=key(s)||"未設定";
+  const v=m.get(k)||{count:0,total:0};
+  v.count++;
+  v.total+=profit(s);
+  m.set(k,v);
+ }
+
+ return [...m].sort((a,b)=>b[0].localeCompare(a[0],"ja"));
+}
+
+function groupHtml(arr){
+ return arr.map(([k,v])=>
+  `<div class="item">
+   <b>${safe(k)}</b>
+   <div class="${v.total>=0?"positive":"negative"}">
+    ${money(v.total)} <small>(${v.count}件)</small>
+   </div>
+  </div>`
+ ).join("")||"データがありません";
+}
+
+function renderStats(){
+ const filter=el("statsMonth").value;
+ const list=filter
+  ?sessions.filter(s=>String(s.played_on||"").startsWith(filter))
+  :sessions;
+
+ el("statsTotal").textContent=money(
+  list.reduce((a,s)=>a+profit(s),0)
+ );
+
+ el("statsSummary").textContent=
+  `${filter||"全期間"} / ${list.length}件`;
+
+ const months=grouped(list,s=>String(s.played_on||"").slice(0,7));
+
+ el("byMonth").innerHTML=groupHtml(months);
+
+ el("byStore").innerHTML=groupHtml(
+  grouped(list,s=>s.store_name)
+   .sort((a,b)=>b[1].total-a[1].total)
+ );
+
+ el("byMachine").innerHTML=groupHtml(
+  grouped(list,s=>
+   machines.find(m=>m.id===s.machine_id)?.name||"機種未設定"
+  ).sort((a,b)=>b[1].total-a[1].total)
+ );
+
+ drawChart(
+  months.slice()
+   .sort((a,b)=>a[0].localeCompare(b[0]))
+   .slice(-12)
+ );
+}
+
+function drawChart(arr){
+ const c=el("profitChart");
+ const dpr=window.devicePixelRatio||1;
+ const w=c.clientWidth||300;
+ const h=180;
+
+ c.width=Math.round(w*dpr);
+ c.height=Math.round(h*dpr);
+
+ const ctx=c.getContext("2d");
+ ctx.scale(dpr,dpr);
+ ctx.clearRect(0,0,w,h);
+
+ if(!arr.length){
+  ctx.fillStyle="#a9b8cb";
+  ctx.font="13px sans-serif";
+  ctx.fillText("グラフに表示するデータがありません",12,35);
+  return;
+ }
+
+ const vals=arr.map(x=>x[1].total);
+ const max=Math.max(0,...vals);
+ const min=Math.min(0,...vals);
+ const range=Math.max(1,max-min);
+ const top=18;
+ const bottom=155;
+ const zero=top+(max/range)*(bottom-top);
+
+ ctx.strokeStyle="#71839a";
+ ctx.beginPath();
+ ctx.moveTo(0,zero);
+ ctx.lineTo(w,zero);
+ ctx.stroke();
+
+ const slot=w/arr.length;
+ const bw=Math.max(4,slot*.58);
+
+ arr.forEach(([name,v],i)=>{
+  const x=i*slot+(slot-bw)/2;
+  const y=top+(max-v.total)/range*(bottom-top);
+
+  ctx.fillStyle=v.total>=0?"#79d6ac":"#ff9b9b";
+  ctx.fillRect(
+   x,
+   Math.min(y,zero),
+   bw,
+   Math.max(1,Math.abs(y-zero))
+  );
+
+  ctx.fillStyle="#cbd5e1";
+  ctx.font="10px sans-serif";
+  ctx.fillText(name.slice(2),x,174);
+ });
+}
+
+el("statsMonth").onchange=renderStats;
+
+el("allMonths").onclick=()=>{
+ el("statsMonth").value="";
+ renderStats();
+};
+
+function renderEvMachines(){
+ const old=el("evMachine").value;
+
+ el("evMachine").innerHTML=machines.map(m=>
+  `<option value="${m.id}">${safe(m.name)}</option>`
+ ).join("");
+
+ if(machines.some(m=>m.id===old)){
+  el("evMachine").value=old;
+ }else{
+  setEvBorder();
+ }
+}
+
+function setEvBorder(){
+ const m=machines.find(m=>m.id===el("evMachine").value);
+ el("evBorder").value=m?.border_rate??"";
+}
+
+el("evMachine").onchange=setEvBorder;
+
+el("calculateEv").onclick=()=>{
+ const b=num("evBorder");
+ const r=num("evRotation");
+ const sp=num("evSpins");
+ const rate=num("evRate");
+
+ if(b<=0||r<=0||sp<=0||rate<=0){
+  return msg("期待値試算の数値をすべて正しく入力してください");
+ }
+
+ const ballDifference=sp*(250/b-250/r);
+ const value=ballDifference*rate;
+
+ el("evResult").textContent=money(value);
+ el("evDetails").textContent=
+  `参考差分：${ballDifference.toFixed(1)}玉。`+
+  `仮定式＝通常回転数×(250÷ボーダー−250÷実測回転率)×玉評価単価。`+
+  `これは収支の期待値を保証する式ではありません。`;
+
+ msg("参考試算を更新しました");
+};
+
+function download(name,text,type){
+ const blob=new Blob([text],{type});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+
+ a.href=url;
+ a.download=name;
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+
+ setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+el("export").onclick=()=>{
+ download(
+  "pachinko-backup.json",
+  JSON.stringify({
+   exported_at:new Date().toISOString(),
+   machines,
+   sessions
+  },null,2),
+  "application/json"
+ );
+};
+
+el("exportCsv").onclick=()=>{
+ const rows=[
+  [
+   "稼働日","機種","店舗","現金投資","貯玉投資玉数",
+   "回収玉数","通常回転用玉数","通常回転数",
+   "交換単価","実収支","メモ"
+  ],
+  ...sessions.map(s=>[
+   s.played_on,
+   machines.find(m=>m.id===s.machine_id)?.name||"",
+   s.store_name,
+   s.cash_investment_yen,
+   s.details?.saved_balls_invested??"",
+   s.balls_out,
+   s.balls_in,
+   s.normal_spins,
+   s.details?.exchange_rate_yen_per_ball??"",
+   profit(s),
+   s.notes
+  ])
+ ];
+
+ const csv="\ufeff"+rows.map(r=>
+  r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"')
+   .join(",")
+ ).join("\r\n");
+
+ download(
+  "pachinko-sessions.csv",
+  csv,
+  "text/csv;charset=utf-8"
+ );
+};
+
+async function start(){
+ const {data:{user:u}}=await db.auth.getUser();
+
+ user=u;
 
  el("auth").classList.toggle("hidden",!!user);
  el("app").classList.toggle("hidden",!user);
 
  if(user){
   el("userEmail").textContent=user.email||"";
+
   try{
    await refresh();
-  }catch(err){
-   error(err);
+  }catch(e){
+   fail(e);
   }
  }else{
   machines=[];
@@ -296,221 +803,33 @@ async function start(){
 }
 
 el("login").onclick=async()=>{
- const {error:e}=await db.auth.signInWithPassword({
+ const {error}=await db.auth.signInWithPassword({
   email:el("email").value.trim(),
   password:el("password").value
  });
 
- if(e)return error(e);
+ if(error)return fail(error);
  await start();
 };
 
 el("signup").onclick=async()=>{
- const {error:e}=await db.auth.signUp({
+ const {error}=await db.auth.signUp({
   email:el("email").value.trim(),
   password:el("password").value
  });
 
- if(e)return error(e);
-
- msg("登録を受け付けました。確認メールをご確認ください。");
+ if(error)return fail(error);
+ msg("確認メールを確認してください");
 };
-
-el("saveMachine").onclick=async()=>{
- if(busy)return;
-
- const name=el("machineName").value.trim();
- if(!name)return msg("機種名を入力してください");
- if(!user)return msg("ログインしてください");
-
- busy=true;
- el("saveMachine").disabled=true;
-
- try{
-  const {error:e}=await db.from("machines").insert({
-   user_id:user.id,
-   name,
-   manufacturer:el("maker").value.trim(),
-   border_rate:el("border").value
-    ?num("border")
-    :null
-  });
-
-  if(e)throw e;
-
-  el("machineName").value="";
-  msg("機種を保存しました");
-  await refresh();
-
- }catch(e){
-  error(e);
- }finally{
-  busy=false;
-  el("saveMachine").disabled=false;
- }
-};
-
-el("date").value=new Date().toLocaleDateString("sv-SE");
-
-el("saveSession").onclick=async()=>{
- if(busy)return;
- if(!user)return msg("ログインしてください");
- if(!el("date").value)return msg("稼働日を入力してください");
- if(!el("machineSelect").value){
-  return msg("先に機種を登録してください");
- }
-
- busy=true;
- el("saveSession").disabled=true;
-
- try{
-  const rate=num("rate");
-  const actual=num("ballsOut")*rate-num("cash");
-
-  const {error:e}=await db.from("sessions").insert({
-   user_id:user.id,
-   machine_id:el("machineSelect").value,
-   played_on:el("date").value,
-   store_name:el("store").value,
-   cash_investment_yen:num("cash"),
-   balls_in:num("ballsIn"),
-   balls_out:num("ballsOut"),
-   normal_spins:num("spins"),
-   notes:el("notes").value,
-   details:{
-    exchange_rate_yen_per_ball:rate,
-    actual_profit_yen:actual
-   }
-  });
-
-  if(e)throw e;
-
-  await refresh();
-  page("home");
-  msg("稼働を保存しました");
-
- }catch(e){
-  error(e);
- }finally{
-  busy=false;
-  el("saveSession").disabled=false;
- }
-};
-
-/* 稼働記録・機種の削除 */
-
-async function deleteSession(id){
- if(!user)return msg("ログインしてください");
-
- const record=sessions.find(s=>s.id===id);
- if(!record)return msg("削除対象が見つかりません");
-
- const label=record.played_on||"日付不明";
-
- if(!confirm(
-  `${label}の稼働記録を完全に削除しますか？\n\nこの操作は取り消せません。`
- ))return;
-
- if(busy)return;
- busy=true;
-
- try{
-  const {data,error:e}=await db.from("sessions")
-   .delete()
-   .eq("id",id)
-   .eq("user_id",user.id)
-   .select("id");
-
-  if(e)throw e;
-  if(!data?.length){
-   throw new Error("削除できませんでした。権限または記録を確認してください");
-  }
-
-  await refresh();
-  msg("稼働記録を削除しました");
-
- }catch(e){
-  error(e);
- }finally{
-  busy=false;
- }
-}
-
-async function deleteMachine(id){
- if(!user)return msg("ログインしてください");
-
- const machine=machines.find(m=>m.id===id);
- if(!machine)return msg("機種が見つかりません");
-
- if(sessions.some(s=>s.machine_id===id)){
-  return msg("稼働履歴がある機種は削除できません");
- }
-
- if(!confirm(
-  `「${machine.name}」を完全に削除しますか？\n\nこの操作は取り消せません。`
- ))return;
-
- if(busy)return;
- busy=true;
-
- try{
-  const {data,error:e}=await db.from("machines")
-   .delete()
-   .eq("id",id)
-   .eq("user_id",user.id)
-   .select("id");
-
-  if(e)throw e;
-  if(!data?.length){
-   throw new Error("削除できませんでした。権限または関連する稼働履歴を確認してください");
-  }
-
-  await refresh();
-  msg("機種を削除しました");
-
- }catch(e){
-  error(e);
- }finally{
-  busy=false;
- }
-}
-
-document.addEventListener("click",async event=>{
- const button=event.target.closest("button[data-delete]");
- if(!button||busy)return;
-
- const type=button.dataset.delete;
- const id=button.dataset.id;
-
- if(type==="session"){
-  await deleteSession(id);
- }else if(type==="machine"){
-  await deleteMachine(id);
- }
-});
 
 el("logout").onclick=async()=>{
- const {error:e}=await db.auth.signOut();
- if(e)return error(e);
+ const {error}=await db.auth.signOut();
+ if(error)return fail(error);
  await start();
 };
 
-el("export").onclick=()=>{
- const blob=new Blob([
-  JSON.stringify({machines,sessions},null,2)
- ],{
-  type:"application/json"
- });
-
- const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="pachinko-backup.json";
- a.click();
-
- setTimeout(()=>{
-  URL.revokeObjectURL(a.href);
- },1000);
-};
+el("date").value=today();
+el("statsMonth").value=today().slice(0,7);
 
 db.auth.onAuthStateChange(()=>{
  setTimeout(start,0);
