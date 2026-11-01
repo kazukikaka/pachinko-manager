@@ -1,3933 +1,1271 @@
-　
+
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e9f5fc">
 <title>パチンコ稼働管理</title>
 <style>
+:root{
+  --bg:#edf6fc;
+  --card:rgba(255,255,255,.94);
+  --ink:#243c55;
+  --muted:#6c849a;
+  --line:#d8e7f2;
+  --blue:#70a9d5;
+  --blue-dark:#437da9;
+  --blue-soft:#e5f3ff;
+  --pink:#e887a5;
+  --green:#319f88;
+  --shadow:0 8px 30px rgba(71,128,171,.09);
+}
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
   margin:0;
-  padding:16px 13px 105px;
-  background:#101827;
-  color:#f5f7fb;
-  font-family:system-ui,-apple-system,sans-serif
+  min-height:100vh;
+  padding:20px 14px calc(110px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(ellipse at 95% 3%,#d5eaf9 0,transparent 40%),
+    radial-gradient(ellipse at 5% 28%,#e5f0ff 0,transparent 40%),
+    linear-gradient(155deg,#f8fcff,#eaf4fc 65%,#f8f7fc);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  font-size:15px;
 }
-h1{font-size:23px}
-h2{font-size:19px;margin:0 0 12px}
-h3{font-size:16px;margin:16px 0 8px}
+body:before{
+  content:"";
+  position:fixed;
+  right:-90px;
+  top:120px;
+  width:250px;
+  height:250px;
+  border:1px solid rgba(107,166,207,.16);
+  border-radius:50%;
+  box-shadow:0 0 0 36px rgba(107,166,207,.025),0 0 0 72px rgba(107,166,207,.025);
+  pointer-events:none;
+  z-index:-1;
+}
+header{
+  max-width:720px;
+  margin:0 auto 22px;
+  padding:10px 4px 12px;
+}
+header .eyebrow{
+  font-size:10px;
+  letter-spacing:.28em;
+  color:var(--blue-dark);
+  font-weight:800;
+}
+h1{font-size:25px;margin:7px 0 4px;letter-spacing:.035em}
+h2{font-size:19px;margin:0 0 16px}
+h3{font-size:15px;margin:18px 0 9px}
+p{line-height:1.7}
+main,.auth,.status-top{max-width:720px;margin:auto}
 .card{
-  background:#1e2a3c;
-  border:1px solid #3b4c65;
-  border-radius:15px;
-  padding:16px;
-  margin:14px 0
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:22px;
+  padding:19px;
+  margin:14px 0;
+  box-shadow:var(--shadow);
+}
+.card h2:before{
+  content:"";
+  display:inline-block;
+  width:4px;
+  height:18px;
+  border-radius:4px;
+  background:var(--blue);
+  vertical-align:-3px;
+  margin-right:10px;
 }
 label{
   display:block;
-  color:#c9d5e5;
-  margin:13px 0 6px;
-  font-size:14px
+  font-size:13px;
+  color:#57718b;
+  font-weight:700;
+  margin:15px 0 7px;
 }
 input,select,textarea{
   display:block;
   width:100%;
-  background:#101c2c;
-  border:1px solid #64748b;
-  color:white;
-  border-radius:10px;
-  padding:12px;
-  font:inherit
-}
-button{
-  width:100%;
-  border:0;
-  border-radius:10px;
-  background:#3977dd;
-  color:white;
+  min-width:0;
+  min-height:49px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#f7fbff;
+  color:var(--ink);
   font:inherit;
-  font-weight:700;
-  padding:13px;
-  margin:9px 0 0;
-  cursor:pointer
+  font-size:16px;
+  padding:12px 13px;
+  outline:none;
 }
-button.secondary{background:#3b4c66}
-button.danger{background:#a9404b}
-button:disabled{opacity:.6}
-.hidden{display:none!important}
-.status{
-  white-space:pre-wrap;
-  min-height:24px;
+input:focus,select:focus,textarea:focus{
+  border-color:#79b7e2;
+  box-shadow:0 0 0 3px rgba(121,183,226,.17);
+}
+textarea{resize:vertical}
+input[readonly]{background:#edf4f9;color:#6d8296}
+button{
+  appearance:none;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(135deg,#83b8df,#578fc2);
+  color:#fff;
+  font:inherit;
   font-size:14px;
-  margin:10px 0;
-  color:#cbd5e1
+  font-weight:800;
+  padding:13px 14px;
+  min-height:46px;
+  width:100%;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(92,151,194,.13);
 }
-.error{color:#ff9b9b}
-.success{color:#83e2b4}
-.item{
-  padding:12px 0;
-  border-bottom:1px solid #44536a
+button:disabled{opacity:.6;cursor:wait}
+button.secondary{
+  background:#e8f2fa;
+  color:#497da5;
+  box-shadow:none;
 }
-.rate{
-  border:1px solid #63728a;
-  padding:13px;
-  border-radius:12px;
-  margin:12px 0
+button.danger{
+  background:#fff0f2;
+  color:#bd5971;
+  box-shadow:none;
 }
-.muted{
-  color:#b9c7d8;
-  font-size:13px;
-  line-height:1.7
+button.ghost{
+  background:#fff;
+  color:var(--blue-dark);
+  border:1px solid var(--line);
+  box-shadow:none;
 }
-.number{font-size:27px;font-weight:750}
-.actions{display:flex;gap:8px}
+button.small{width:auto;min-height:36px;padding:8px 12px;font-size:12px}
+.actions{display:flex;gap:9px;margin-top:10px}
 .actions button{flex:1}
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px
-}
-.metric{
-  background:#142134;
-  border-radius:10px;
-  padding:12px;
-  min-width:0
-}
-.metric small{
-  display:block;
-  color:#b9c7d8
-}
-.metric strong{
-  font-size:19px;
-  overflow-wrap:anywhere
-}
-.notice{
-  background:#172b41;
-  border-left:3px solid #6d9ce8;
-  padding:11px;
-  margin:12px 0;
+.hidden{display:none!important}
+.muted{color:var(--muted);font-size:12px;line-height:1.75}
+.status{
+  min-height:22px;
+  white-space:pre-wrap;
   font-size:13px;
-  line-height:1.7
+  color:var(--muted);
+  margin:10px 0;
 }
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px
-}
-td,th{
-  border-bottom:1px solid #40516a;
-  padding:10px 4px;
-  text-align:right
-}
-td:first-child,th:first-child{text-align:left}
-svg.chart{
-  width:100%;
-  height:auto;
-  background:#142134;
-  border-radius:10px
-}
-nav{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  display:flex;
-  gap:4px;
-  background:#1b2739;
-  padding:9px;
-  z-index:10
-}
-nav button{
-  font-size:11px;
-  padding:12px 2px;
-  margin:0;
-  min-width:0
-}
-nav button.active{background:#3977dd}
-.series-block{
-  border:1px solid #435570;
-  border-radius:12px;
-  margin:12px 0;
-  overflow:hidden
-}
-.series-title{
+.status.error{color:#cb5472}
+.status.success{color:#279b83}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{
+  background:linear-gradient(155deg,#f3f9ff,#e9f3fb);
+  border:1px solid #e1eef8;
   padding:13px;
-  background:#263850;
-  font-weight:700
+  border-radius:16px;
+  min-width:0;
 }
-.series-body{padding:0 12px}
+.metric small{display:block;color:#6c879d;font-size:11px}
+.metric strong{
+  display:block;
+  font-size:19px;
+  margin:6px 0;
+  overflow-wrap:anywhere;
+}
+.plus{color:var(--green)}
+.minus{color:#d76c89}
+.notice{
+  background:#eaf5fd;
+  border:1px solid #d7e9f7;
+  border-radius:14px;
+  padding:13px;
+  margin:13px 0;
+  color:#4e7594;
+  font-size:12px;
+  line-height:1.8;
+  white-space:pre-line;
+}
+.item{padding:14px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item b{line-height:1.6}
 .pill{
   display:inline-block;
-  background:#314865;
+  background:#e5f2fd;
+  color:#4c8bb9;
   border-radius:30px;
-  padding:3px 10px;
-  font-size:12px;
-  color:#d7e8ff
+  font-size:11px;
+  font-weight:800;
+  padding:4px 10px;
+}
+.rate,.series-block{
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  margin:12px 0;
+  background:#fbfdff;
+}
+.series-title{
+  font-weight:800;
+  background:#e9f5fd;
+  color:#477fa7;
+  margin:-14px -14px 8px;
+  padding:14px;
+  border-radius:15px 15px 0 0;
+}
+.section-title{
+  margin:24px 0 12px;
+  padding:10px 13px;
+  border-radius:12px;
+  background:#eff7fc;
+  color:#5489b1;
+  font-size:14px;
+}
+.number{font-size:27px;font-weight:900;color:#4c91c1}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:11px 4px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+svg.chart{width:100%;height:auto;background:#f2f8fd;border-radius:14px}
+details.fold{
+  border:1px solid var(--line);
+  border-radius:15px;
+  margin:13px 0;
+  padding:0 13px 13px;
+  background:#fcfeff;
+}
+details.fold summary{
+  cursor:pointer;
+  padding:15px 2px;
+  font-weight:800;
+  color:#5487ad;
+}
+.date-shell{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 13px;
+  border:1px solid #cfe3f3;
+  border-radius:15px;
+  background:linear-gradient(110deg,#f1f9ff,#fff);
+  min-height:66px;
+  overflow:hidden;
+}
+.date-icon{
+  display:grid;
+  place-items:center;
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  background:#dceefa;
+  color:#518fbc;
+  font-size:20px;
+  flex:none;
+}
+.date-display{font-size:18px;font-weight:800;color:#355b7d}
+.date-sub{font-size:11px;color:#83a1b8;margin-top:3px}
+.date-shell input[type=date]{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+  z-index:2;
+}
+.date-actions{display:flex;gap:8px;margin-top:9px}
+.date-actions button{flex:1}
+nav{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  z-index:20;
+  display:flex;
+  gap:4px;
+  padding:10px 9px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);
+  border-top:1px solid #dbe9f3;
+  box-shadow:0 -6px 25px rgba(65,110,147,.08);
+  backdrop-filter:blur(18px);
+}
+nav button{
+  flex:1;
+  min-width:0;
+  width:auto;
+  padding:9px 1px;
+  min-height:54px;
+  background:transparent;
+  color:#8299ad;
+  border-radius:12px;
+  box-shadow:none;
+  font-size:10px;
+  font-weight:800;
+}
+nav button span{display:block;font-size:19px;margin-bottom:4px}
+nav button.active{
+  background:#e6f3fc;
+  color:#4288bb;
+}
+@media(min-width:700px){
+  body{padding-top:30px}
+  .card{padding:24px}
 }
 </style>
 </head>
 <body>
+<header>
+  <div class="eyebrow">RECORD · ANALYSIS · EXPECTATION</div>
+  <h1>パチンコ稼働管理</h1>
+  <div class="muted">Your play, clearly recorded.</div>
+</header>
+<div id="globalStatus" class="status status-top"></div>
 
-<h1>パチンコ稼働管理</h1>
-<div id="globalStatus" class="status" role="alert"></div>
-
-<section id="auth" class="card">
-<h2>ログイン</h2>
-<label>メールアドレス</label>
-<input id="email" type="email">
-<label>パスワード</label>
-<input id="password" type="password">
-<button id="login">ログイン</button>
-<button id="signup" class="secondary">新規登録</button>
+<section id="auth" class="card auth">
+  <h2>ログイン</h2>
+  <label>メールアドレス</label>
+  <input id="email" type="email" autocomplete="email">
+  <label>パスワード</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="login">ログイン</button>
+  <button id="signup" class="secondary">新規登録</button>
 </section>
 
 <main id="app" class="hidden">
-
 <section id="home" class="page">
-<div class="card">
-<h2>収支・期待値</h2>
-<label>分析カテゴリ</label>
-<select id="homeCategory">
-<option value="all">全体</option>
-<option value="four">4パチ</option>
-<option value="low">低貸し</option>
-</select>
-<div id="homeSummary"></div>
-</div>
-<div class="card">
-<h2>稼働履歴</h2>
-<div id="history"></div>
-</div>
+  <div class="card">
+    <h2>収支・期待値</h2>
+    <label>分析カテゴリ</label>
+    <select id="homeCategory">
+      <option value="all">全体</option>
+      <option value="four">4パチ</option>
+      <option value="low">低貸し</option>
+    </select>
+    <div id="homeSummary"></div>
+  </div>
+  <div class="card">
+    <h2>稼働履歴</h2>
+    <div id="history"></div>
+  </div>
 </section>
 
 <section id="machinesPage" class="page hidden">
-<div class="card">
-<h2 id="machineHeading">機種登録</h2>
-
-<label>シリーズ・作品名</label>
-<input
-  id="machineSeries"
-  list="seriesSuggestions"
-  placeholder="例：エヴァンゲリオン、東京喰種">
-<datalist id="seriesSuggestions"></datalist>
-<p class="muted">
-  同じシリーズ名を使用すると、
-  機種一覧と選択画面で自動的にまとまります。
-  未入力の場合は「未分類」になります。
-</p>
-
-<label>機種名</label>
-<input id="machineName">
-
-<label>メーカー</label>
-<input id="machineMaker">
-
-<label>初当たり確率の分母</label>
-<input
-  id="machineProbability"
-  type="number"
-  min="0.001"
-  step="any">
-
-<label>平均TY（初当たり1回あたりの純増差玉）</label>
-<input
-  id="machineTy"
-  type="number"
-  min="0.001"
-  step="any">
-
-<p id="machineBorder" class="muted">
-  等価ボーダー：—
-</p>
-
-<button id="saveMachine">機種を保存</button>
-<div id="machineStatus" class="status"></div>
-
-<button
-  id="cancelMachine"
-  class="secondary hidden">
-  編集を中止
-</button>
-</div>
-
-<div class="card">
-<h2>登録機種</h2>
-
-<label>シリーズで絞り込み</label>
-<select id="machineListSeries"></select>
-
-<div id="machineList"></div>
-</div>
+  <div class="card">
+    <h2 id="machineHeading">機種登録</h2>
+    <label>シリーズ・作品名</label>
+    <input id="machineSeries" list="seriesSuggestions" placeholder="エヴァンゲリオン、東京喰種など">
+    <datalist id="seriesSuggestions"></datalist>
+    <label>機種名</label>
+    <input id="machineName">
+    <label>メーカー</label>
+    <input id="machineMaker">
+    <label>初当たり確率の分母</label>
+    <input id="machineProbability" type="number" min="0.001" step="any">
+    <label>平均TY（初当たり1回あたりの純増差玉）</label>
+    <input id="machineTy" type="number" min="0.001" step="any">
+    <p id="machineBorder" class="muted">等価ボーダー：—</p>
+    <button id="saveMachine">機種を保存</button>
+    <div id="machineStatus" class="status"></div>
+    <button id="cancelMachine" class="secondary hidden">編集を中止</button>
+  </div>
+  <div class="card">
+    <h2>登録機種</h2>
+    <label>シリーズで絞り込み</label>
+    <select id="machineListSeries"></select>
+    <div id="machineList"></div>
+  </div>
 </section>
 
 <section id="storesPage" class="page hidden">
-<div class="card">
-<h2 id="storeHeading">店舗登録</h2>
-
-<label>店舗名</label>
-<input id="storeName">
-
-<div id="rateEditors"></div>
-
-<button id="addRate" class="secondary">
-  ＋ 貸玉レートを追加
-</button>
-
-<button id="saveStore">店舗を保存</button>
-<div id="storeStatus" class="status"></div>
-
-<button
-  id="cancelStore"
-  class="secondary hidden">
-  編集を中止
-</button>
-
-<p class="muted">
-  既存店舗・貸玉レートは削除しません。
-</p>
-</div>
-
-<div class="card">
-<h2>登録店舗</h2>
-<div id="storeList"></div>
-</div>
+  <div class="card">
+    <h2 id="storeHeading">店舗登録</h2>
+    <label>店舗名</label>
+    <input id="storeName">
+    <div id="rateEditors"></div>
+    <button id="addRate" class="secondary">＋ 貸玉レートを追加</button>
+    <button id="saveStore">店舗を保存</button>
+    <div id="storeStatus" class="status"></div>
+    <button id="cancelStore" class="secondary hidden">編集を中止</button>
+  </div>
+  <div class="card">
+    <h2>登録店舗</h2>
+    <div id="storeList"></div>
+  </div>
 </section>
 
 <section id="beforePage" class="page hidden">
-<div class="card">
-<h2>稼働前・必要回転率</h2>
-
-<p class="muted">
-  目標期待値を達成するために
-  必要な回転率を逆算します。
-</p>
-
-<label>店舗</label>
-<select id="beforeGroup"></select>
-
-<label>貸玉レート</label>
-<select id="beforeRate"></select>
-
-<label>シリーズ・作品</label>
-<select id="beforeSeries"></select>
-
-<label>機種</label>
-<select id="beforeMachine"></select>
-
-<label>稼働時間（時間）</label>
-<input
-  id="beforeHours"
-  type="number"
-  min="0.1"
-  step="0.5"
-  value="8">
-
-<label>通常時の消化速度（回/時）</label>
-<input
-  id="beforeSpeed"
-  type="number"
-  min="1"
-  step="1"
-  placeholder="例：200">
-
-<label>
-  初当たり1回あたりの平均消化時間（分）
-</label>
-<input
-  id="beforeHitMinutes"
-  type="number"
-  min="0"
-  step="any"
-  placeholder="連チャン消化を含む">
-
-<label>投資条件</label>
-<select id="beforeFunding">
-<option value="cash">全額現金</option>
-<option value="replay">貯玉再プレイのみ</option>
-<option value="mixed">貯玉再プレイ＋現金</option>
-</select>
-
-<div id="beforeReplayWrap" class="hidden">
-<label>今回使用可能な貯玉（玉）</label>
-<input
-  id="beforeReplayAvailable"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-</div>
-
-<label>目標期待値（円）</label>
-<input
-  id="beforeTarget"
-  type="number"
-  step="1000"
-  value="10000">
-
-<button id="calculateBefore">
-  必要回転率を計算
-</button>
-
-<div id="beforeResult"></div>
-</div>
+  <div class="card">
+    <h2>稼働前・必要回転率</h2>
+    <p class="muted">目標期待値に必要な回転率を、店舗の貸玉・交換条件から推定します。</p>
+    <label>店舗</label>
+    <select id="beforeGroup"></select>
+    <label>貸玉レート</label>
+    <select id="beforeRate"></select>
+    <label>シリーズ・作品</label>
+    <select id="beforeSeries"></select>
+    <label>機種</label>
+    <select id="beforeMachine"></select>
+    <label>稼働時間（時間）</label>
+    <input id="beforeHours" type="number" min="0.1" step="0.5" value="8">
+    <label>通常時の消化速度（回/時）</label>
+    <input id="beforeSpeed" type="number" min="1" step="1" placeholder="例：200">
+    <label>初当たり1回あたりの平均消化時間（分）</label>
+    <input id="beforeHitMinutes" type="number" min="0" step="any" placeholder="連チャン消化を含む">
+    <label>投資条件</label>
+    <select id="beforeFunding">
+      <option value="cash">全額現金</option>
+      <option value="replay">貯玉再プレイのみ</option>
+      <option value="mixed">貯玉再プレイ＋現金</option>
+    </select>
+    <div id="beforeReplayWrap" class="hidden">
+      <label>今回使用可能な貯玉（玉）</label>
+      <input id="beforeReplayAvailable" type="number" min="0" step="1" value="0">
+    </div>
+    <label>目標期待値（円）</label>
+    <input id="beforeTarget" type="number" step="1000" value="10000">
+    <button id="calculateBefore">必要回転率を計算</button>
+    <div id="beforeResult"></div>
+  </div>
 </section>
 
 <section id="sessionsPage" class="page hidden">
-<div class="card">
-<h2 id="sessionHeading">稼働記録</h2>
+  <div class="card">
+    <h2 id="sessionHeading">稼働記録</h2>
+    <label>稼働日</label>
+    <div class="date-shell">
+      <div class="date-icon">▦</div>
+      <div>
+        <div id="dateDisplay" class="date-display">日付を選択</div>
+        <div class="date-sub">タップしてカレンダーを開く</div>
+      </div>
+      <input id="playedOn" type="date" lang="ja-JP" aria-label="稼働日を選択">
+    </div>
+    <div class="date-actions">
+      <button id="previousDay" class="ghost small">前日</button>
+      <button id="todayButton" class="ghost small">今日</button>
+      <button id="nextDay" class="ghost small">翌日</button>
+    </div>
 
-<label>稼働日</label>
-<input id="playedOn" type="date">
+    <div class="section-title">店舗・機種</div>
+    <label>店舗</label>
+    <select id="sessionGroup"></select>
+    <label>貸玉レート</label>
+    <select id="sessionRate"></select>
+    <label>シリーズ・作品</label>
+    <select id="sessionSeries"></select>
+    <label>機種</label>
+    <select id="sessionMachine"></select>
 
-<label>店舗</label>
-<select id="sessionGroup"></select>
+    <div class="section-title">投資・出玉</div>
+    <label>現金投資（円）</label>
+    <input id="cash" type="number" min="0" step="any" value="0">
+    <label>現金で借りた玉数</label>
+    <input id="cashBalls" type="number" min="0" step="1" value="0">
+    <label>貯玉再プレイ使用玉数</label>
+    <input id="replay" type="number" min="0" step="1" value="0">
+    <label>再プレイ手数料（玉）</label>
+    <input id="replayFee" type="number" min="0" step="1" value="0">
+    <label>持ち玉で通常回転に使用した玉数</label>
+    <input id="heldBalls" type="number" min="0" step="1" value="0">
+    <label>終了時に貯玉した玉数</label>
+    <input id="deposit" type="number" min="0" step="1" value="0">
+    <label>終了時の総獲得玉数</label>
+    <input id="ballsOut" type="number" min="0" step="1" value="0">
+    <label>換金額（円）</label>
+    <input id="returned" type="number" min="0" step="any" value="0">
 
-<label>貸玉レート</label>
-<select id="sessionRate"></select>
+    <div class="section-title">通常回転・期待値</div>
+    <label>通常回転に使った玉数（合計）</label>
+    <input id="ballsIn" type="number" min="0" step="1" value="0">
+    <label>通常回転数</label>
+    <input id="spins" type="number" min="0" step="1" value="0">
+    <div id="investmentPreview" class="notice"></div>
 
-<label>シリーズ・作品</label>
-<select id="sessionSeries"></select>
+    <details class="fold" open>
+      <summary>期待値・収支の詳細設定</summary>
+      <label>実収支（円、空欄なら自動計算）</label>
+      <input id="manualProfit" type="number" step="any" placeholder="任意">
+      <label>期待値の計算方法</label>
+      <select id="evMode">
+        <option value="model">投資内訳を反映した条件付き期待値</option>
+        <option value="manual">別途計算した期待値を入力</option>
+        <option value="none">期待値未登録</option>
+      </select>
+      <div id="manualEvWrap" class="hidden">
+        <label>別途計算した期待値（円）</label>
+        <input id="manualEv" type="number" step="any">
+        <label>計算根拠</label>
+        <textarea id="evBasis" rows="3"></textarea>
+      </div>
+      <div id="evPreview" class="notice"></div>
+    </details>
 
-<label>機種</label>
-<select id="sessionMachine"></select>
-
-<h3>投資・出玉</h3>
-
-<label>現金投資（円）</label>
-<input
-  id="cash"
-  type="number"
-  min="0"
-  step="any"
-  value="0">
-
-<label>現金で借りた玉数</label>
-<input
-  id="cashBalls"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>貯玉再プレイ使用玉数</label>
-<input
-  id="replay"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>再プレイ手数料（玉）</label>
-<input
-  id="replayFee"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>
-  持ち玉で通常回転に使用した玉数
-</label>
-<input
-  id="heldBalls"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>終了時に貯玉した玉数</label>
-<input
-  id="deposit"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>終了時の総獲得玉数</label>
-<input
-  id="ballsOut"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>換金額（円）</label>
-<input
-  id="returned"
-  type="number"
-  min="0"
-  step="any"
-  value="0">
-
-<h3>通常回転</h3>
-
-<label>通常回転に使った玉数（合計）</label>
-<input
-  id="ballsIn"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<label>通常回転数</label>
-<input
-  id="spins"
-  type="number"
-  min="0"
-  step="1"
-  value="0">
-
-<div id="investmentPreview" class="notice"></div>
-
-<label>実収支（円、空欄なら自動計算）</label>
-<input
-  id="manualProfit"
-  type="number"
-  step="any"
-  placeholder="任意">
-
-<h3>稼働後の期待値</h3>
-
-<label>期待値の計算方法</label>
-<select id="evMode">
-<option value="model">
-  投資内訳を反映した条件付き期待値
-</option>
-<option value="manual">
-  別途計算した期待値を入力
-</option>
-<option value="none">
-  期待値未登録
-</option>
-</select>
-
-<div id="manualEvWrap" class="hidden">
-<label>別途計算した期待値（円）</label>
-<input
-  id="manualEv"
-  type="number"
-  step="any">
-
-<label>計算根拠</label>
-<textarea id="evBasis" rows="3"></textarea>
-</div>
-
-<div id="evPreview" class="notice"></div>
-
-<label>メモ</label>
-<textarea id="notes" rows="3"></textarea>
-
-<div id="sessionPreview" class="muted"></div>
-
-<button id="saveSession">
-  稼働を保存
-</button>
-
-<div id="sessionStatus" class="status"></div>
-
-<button
-  id="cancelSession"
-  class="secondary hidden">
-  編集を中止
-</button>
-</div>
+    <label>メモ</label>
+    <textarea id="notes" rows="3" placeholder="回転率、展開、気付いたことなど"></textarea>
+    <div id="sessionPreview" class="muted"></div>
+    <button id="saveSession">稼働を保存</button>
+    <div id="sessionStatus" class="status"></div>
+    <button id="cancelSession" class="secondary hidden">編集を中止</button>
+  </div>
 </section>
 
 <section id="statsPage" class="page hidden">
-<div class="card">
-<h2>期待値・欠損余剰分析</h2>
-
-<label>カテゴリ</label>
-<select id="statsCategory">
-<option value="all">全体</option>
-<option value="four">4パチ</option>
-<option value="low">低貸し</option>
-</select>
-
-<label>貸玉レート</label>
-<select id="statsRate">
-<option value="all">すべて</option>
-</select>
-
-<label>シリーズ・作品</label>
-<select id="statsSeries">
-<option value="all">すべて</option>
-</select>
-
-<label>投資方法</label>
-<select id="statsFunding">
-<option value="all">すべて</option>
-<option value="cash">現金投資あり</option>
-<option value="noncash">現金投資なし</option>
-<option value="unknown">投資内訳不明</option>
-</select>
-
-<div id="statsSummary"></div>
-</div>
-
-<div class="card">
-<h2>累積欠損・余剰の推移</h2>
-<div id="statsCurve"></div>
-</div>
-
-<div class="card">
-<h2>月別</h2>
-<div id="statsMonths"></div>
-</div>
-
-<div class="card">
-<h2>店舗別</h2>
-<div id="statsStores"></div>
-</div>
-
-<div class="card">
-<h2>シリーズ別</h2>
-<div id="statsSeriesGroups"></div>
-</div>
-
-<div class="card">
-<h2>機種別</h2>
-<div id="statsMachines"></div>
-</div>
-
-<div class="card">
-<h2>投資方法別</h2>
-<div id="statsFundingGroups"></div>
-</div>
+  <div class="card">
+    <h2>期待値・欠損余剰分析</h2>
+    <label>カテゴリ</label>
+    <select id="statsCategory">
+      <option value="all">全体</option>
+      <option value="four">4パチ</option>
+      <option value="low">低貸し</option>
+    </select>
+    <label>貸玉レート</label>
+    <select id="statsRate"><option value="all">すべて</option></select>
+    <label>シリーズ・作品</label>
+    <select id="statsSeries"><option value="all">すべて</option></select>
+    <label>投資方法</label>
+    <select id="statsFunding">
+      <option value="all">すべて</option>
+      <option value="cash">現金投資あり</option>
+      <option value="noncash">現金投資なし</option>
+      <option value="unknown">投資内訳不明</option>
+    </select>
+    <div id="statsSummary"></div>
+  </div>
+  <div class="card"><h2>累積欠損・余剰の推移</h2><div id="statsCurve"></div></div>
+  <div class="card"><h2>月別</h2><div id="statsMonths"></div></div>
+  <div class="card"><h2>店舗別</h2><div id="statsStores"></div></div>
+  <div class="card"><h2>シリーズ別</h2><div id="statsSeriesGroups"></div></div>
+  <div class="card"><h2>機種別</h2><div id="statsMachines"></div></div>
+  <div class="card"><h2>投資方法別</h2><div id="statsFundingGroups"></div></div>
 </section>
 
 <section id="settingsPage" class="page hidden">
-<div class="card">
-<h2>設定</h2>
-<p id="account"></p>
-
-<button id="backup" class="secondary">
-  JSONバックアップ
-</button>
-
-<button id="logout" class="secondary">
-  ログアウト
-</button>
-</div>
+  <div class="card">
+    <h2>設定</h2>
+    <p id="account" class="muted"></p>
+    <button id="backup" class="secondary">JSONバックアップ</button>
+    <button id="logout" class="secondary">ログアウト</button>
+  </div>
 </section>
 
 <nav>
-<button data-page="home">ホーム</button>
-<button data-page="machinesPage">機種</button>
-<button data-page="storesPage">店舗</button>
-<button data-page="beforePage">稼働前</button>
-<button data-page="sessionsPage">入力</button>
-<button data-page="statsPage">分析</button>
-<button data-page="settingsPage">設定</button>
+  <button data-page="home"><span>⌂</span>ホーム</button>
+  <button data-page="machinesPage"><span>◇</span>機種</button>
+  <button data-page="storesPage"><span>▤</span>店舗</button>
+  <button data-page="beforePage"><span>◎</span>稼働前</button>
+  <button data-page="sessionsPage"><span>✎</span>入力</button>
+  <button data-page="statsPage"><span>▥</span>分析</button>
+  <button data-page="settingsPage"><span>⚙</span>設定</button>
 </nav>
-
 </main>
 
 <script type="module">
-import {createClient}
-from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const db=createClient(
   "https://ezhhldztqloffumweklk.supabase.co",
   "sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF"
 );
-
 const $=id=>document.getElementById(id);
 const val=id=>$(id).value.trim();
 const num=id=>Number(val(id));
-
+const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+})[c]);
 const yen=x=>{
-  if(
-    x===null||
-    x===undefined||
-    !Number.isFinite(Number(x))
-  ){
-    return "—";
-  }
-
-  const n=Number(x);
-
-  return (n<0?"-¥":"¥")+
-    Math.abs(Math.round(n))
-      .toLocaleString("ja-JP");
+  if(x===null||x===undefined||x===""||!Number.isFinite(Number(x)))return "—";
+  const n=Math.round(Number(x));
+  return (n<0?"-¥":"¥")+Math.abs(n).toLocaleString("ja-JP");
 };
-
-const safe=x=>String(x??"")
-  .replace(/[&<>"']/g,c=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  })[c]);
-
+const moneyClass=x=>x===null?"":Number(x)<0?"minus":Number(x)>0?"plus":"";
 const today=()=>{
   const d=new Date();
-
-  return [
-    d.getFullYear(),
-    String(d.getMonth()+1).padStart(2,"0"),
-    String(d.getDate()).padStart(2,"0")
-  ].join("-");
+  return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
 };
-
-function finiteOrNull(x){
-  if(
-    x===null||
-    x===undefined||
-    x===""
-  )return null;
-
+const finiteOrNull=x=>{
+  if(x===null||x===undefined||x==="")return null;
   const n=Number(x);
-
   return Number.isFinite(n)?n:null;
-}
-
+};
 function nonnegativeInteger(id){
   const x=num(id);
-
-  if(
-    val(id)===""||
-    !Number.isSafeInteger(x)||
-    x<0
-  ){
-    throw Error(
-      `${id}は0以上の整数で入力してください`
-    );
-  }
-
+  if(val(id)===""||!Number.isSafeInteger(x)||x<0)throw Error(`${id}は0以上の整数で入力してください`);
   return x;
 }
-
 function nonnegativeNumber(id){
   const x=num(id);
-
-  if(
-    val(id)===""||
-    !Number.isFinite(x)||
-    x<0
-  ){
-    throw Error(
-      `${id}の入力値を確認してください`
-    );
-  }
-
+  if(val(id)===""||!Number.isFinite(x)||x<0)throw Error(`${id}の入力値を確認してください`);
   return x;
 }
-
-let user=null;
-let groups=[];
-let stores=[];
-let machines=[];
-let sessions=[];
-
-let editingGroup=null;
-let editingMachine=null;
-let editingSession=null;
-
-let rateRows=[];
-let storeBusy=false;
-let machineBusy=false;
-let sessionBusy=false;
-
-const group=id=>
-  groups.find(x=>x.id===id);
-
-const store=id=>
-  stores.find(x=>x.id===id);
-
-const machine=id=>
-  machines.find(x=>x.id===id);
-
-const session=id=>
-  sessions.find(x=>x.id===id);
-
-/* シリーズ管理 */
-
-function normalizeSeries(name){
-  return String(name??"").trim()||"未分類";
-}
-
-function machineSeries(m){
-  return normalizeSeries(m?.series_name);
-}
-
-function sessionSeries(s){
-  const m=machine(s?.machine_id);
-  return machineSeries(m);
-}
-
-function allSeries(){
-  const names=new Set(
-    machines.map(machineSeries)
-  );
-
-  return [...names].sort((a,b)=>{
-    if(a==="未分類")return 1;
-    if(b==="未分類")return -1;
-
-    return a.localeCompare(
-      b,
-      "ja",
-      {numeric:true}
-    );
-  });
-}
-
-function sortedMachines(list){
-  return [...list].sort((a,b)=>
-    String(a.name||"").localeCompare(
-      String(b.name||""),
-      "ja",
-      {numeric:true}
-    )
-  );
-}
-
-function setOptions(id,items,old){
-  const el=$(id);
-
-  el.innerHTML=items.map(x=>`
-    <option value="${safe(x.id)}">
-      ${safe(x.name)}
-    </option>
-  `).join("");
-
-  if(items.some(x=>x.id===old)){
-    el.value=old;
-  }
-}
-
-function renderSeriesOptions(id,includeAll=false){
-  const old=val(id);
-
-  const items=allSeries().map(name=>({
-    id:name,
-    name
-  }));
-
-  if(includeAll){
-    items.unshift({
-      id:"all",
-      name:"すべて"
-    });
-  }
-
-  setOptions(id,items,old);
-}
-
-function renderMachineChoice(
-  seriesId,
-  machineId,
-  preferredMachine=null
-){
-  const series=val(seriesId);
-  const old=preferredMachine||val(machineId);
-
-  const items=sortedMachines(
-    machines.filter(m=>
-      machineSeries(m)===series
-    )
-  ).map(m=>({
-    id:m.id,
-    name:m.name
-  }));
-
-  setOptions(machineId,items,old);
-}
-
-function renderSeriesSelectors(){
-  const oldSessionMachine=
-    val("sessionMachine");
-
-  const oldBeforeMachine=
-    val("beforeMachine");
-
-  renderSeriesOptions("sessionSeries");
-  renderSeriesOptions("beforeSeries");
-  renderSeriesOptions("machineListSeries",true);
-  renderSeriesOptions("statsSeries",true);
-
-  const sm=machine(oldSessionMachine);
-
-  if(sm){
-    $("sessionSeries").value=
-      machineSeries(sm);
-  }
-
-  const bm=machine(oldBeforeMachine);
-
-  if(bm){
-    $("beforeSeries").value=
-      machineSeries(bm);
-  }
-
-  renderMachineChoice(
-    "sessionSeries",
-    "sessionMachine",
-    oldSessionMachine
-  );
-
-  renderMachineChoice(
-    "beforeSeries",
-    "beforeMachine",
-    oldBeforeMachine
-  );
-
-  $("seriesSuggestions").innerHTML=
-    allSeries().map(name=>`
-      <option value="${safe(name)}"></option>
-    `).join("");
-}
-
-$("sessionSeries").onchange=()=>{
-  renderMachineChoice(
-    "sessionSeries",
-    "sessionMachine"
-  );
-  previewEV();
-};
-
-$("beforeSeries").onchange=()=>{
-  renderMachineChoice(
-    "beforeSeries",
-    "beforeMachine"
-  );
-};
-
-$("machineListSeries").onchange=renderMachines;
-
-/* 分析カテゴリ */
-
-const category=s=>
-  s?.analysis_category||
-  (
-    Number(s?.play_rate_yen)>=4
-      ?"four"
-      :"low"
-  );
-
-const pRate=s=>Number(
-  s?.details?.play_rate_yen||
-  store(s?.details?.store_id)
-    ?.play_rate_yen||
-  0
-);
-
-const pCategory=s=>
-  s?.details?.analysis_category||
-  category(
-    store(s?.details?.store_id)||
-    {play_rate_yen:pRate(s)}
-  );
-
-const pProfit=s=>
-  finiteOrNull(
-    s?.details?.actual_profit_yen
-  );
-
-const pEV=s=>
-  finiteOrNull(
-    s?.details?.post_ev_yen
-  );
-
-const pSurplus=s=>{
-  const profit=pProfit(s);
-  const ev=pEV(s);
-
-  return profit===null||ev===null
-    ?null
-    :profit-ev;
-};
-
-function fundingType(s){
-  const d=s?.details||{};
-
-  if(
-    d.investment_breakdown_version!=="v2"
-  ){
-    return "unknown";
-  }
-
-  return Number(
-    s.cash_investment_yen
-  )>0
-    ?"cash"
-    :"noncash";
-}
-
-function fundingLabel(s){
-  const type=fundingType(s);
-
-  if(type==="unknown"){
-    return "投資内訳不明";
-  }
-
-  if(type==="cash"){
-    return "現金投資あり";
-  }
-
-  return "現金投資なし";
-}
-
 function setStatus(id,msg,kind=""){
-  const el=$(id);
-  if(!el)return;
-
-  el.textContent=msg;
-  el.className="status "+kind;
+  $(id).textContent=msg;
+  $(id).className="status "+kind;
 }
-
 function showError(id,e){
-  setStatus(
-    id,
-    "エラー："+(
-      e?.message||String(e)
-    ),
-    "error"
-  );
-
+  setStatus(id,"エラー："+(e?.message||String(e)),"error");
   console.error(e);
 }
-
 function check(result){
-  if(result.error){
-    throw result.error;
-  }
-
+  if(result.error)throw result.error;
   return result.data;
 }
+let user=null,groups=[],stores=[],machines=[],sessions=[];
+let editingGroup=null,editingMachine=null,editingSession=null;
+let rateRows=[],storeBusy=false,machineBusy=false,sessionBusy=false;
+const group=id=>groups.find(x=>x.id===id);
+const store=id=>stores.find(x=>x.id===id);
+const machine=id=>machines.find(x=>x.id===id);
+const session=id=>sessions.find(x=>x.id===id);
+const normalizeSeries=x=>String(x??"").trim()||"未分類";
+const machineSeries=m=>normalizeSeries(m?.series_name);
+const sessionSeries=s=>machineSeries(machine(s.machine_id));
+const allSeries=()=>[...new Set(machines.map(machineSeries))].sort((a,b)=>{
+  if(a==="未分類")return 1;
+  if(b==="未分類")return -1;
+  return a.localeCompare(b,"ja",{numeric:true});
+});
+const sortedMachines=a=>[...a].sort((x,y)=>String(x.name).localeCompare(String(y.name),"ja",{numeric:true}));
+const category=s=>s?.analysis_category||(Number(s?.play_rate_yen)>=4?"four":"low");
+const pRate=s=>Number(s?.details?.play_rate_yen||store(s?.details?.store_id)?.play_rate_yen||0);
+const pCategory=s=>s?.details?.analysis_category||category(store(s?.details?.store_id)||{play_rate_yen:pRate(s)});
+const pProfit=s=>finiteOrNull(s?.details?.actual_profit_yen);
+const pEV=s=>finiteOrNull(s?.details?.post_ev_yen);
+const pSurplus=s=>pProfit(s)===null||pEV(s)===null?null:pProfit(s)-pEV(s);
+function fundingType(s){
+  if(s?.details?.investment_breakdown_version!=="v2")return "unknown";
+  return Number(s.cash_investment_yen)>0?"cash":"noncash";
+}
+function fundingLabel(s){
+  return {unknown:"投資内訳不明",cash:"現金投資あり",noncash:"現金投資なし"}[fundingType(s)];
+}
+
+/* 日本式の日付表示。保存形式は従来のYYYY-MM-DD */
+function formatDateJP(iso){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||""))return "日付を選択";
+  const [y,m,d]=iso.split("-").map(Number);
+  const date=new Date(y,m-1,d);
+  if(date.getFullYear()!==y||date.getMonth()!==m-1||date.getDate()!==d)return "日付を選択";
+  return `${y}年${m}月${d}日（${"日月火水木金土"[date.getDay()]}）`;
+}
+function updateDateDisplay(){
+  $("dateDisplay").textContent=formatDateJP(val("playedOn"));
+}
+function moveDate(days){
+  const iso=val("playedOn")||today();
+  const [y,m,d]=iso.split("-").map(Number);
+  const date=new Date(y,m-1,d+days);
+  $("playedOn").value=[
+    date.getFullYear(),
+    String(date.getMonth()+1).padStart(2,"0"),
+    String(date.getDate()).padStart(2,"0")
+  ].join("-");
+  updateDateDisplay();
+}
+$("playedOn").addEventListener("change",updateDateDisplay);
+$("playedOn").addEventListener("input",updateDateDisplay);
+$("previousDay").onclick=()=>moveDate(-1);
+$("nextDay").onclick=()=>moveDate(1);
+$("todayButton").onclick=()=>{
+  $("playedOn").value=today();
+  updateDateDisplay();
+};
 
 function show(page){
-  document.querySelectorAll(".page")
-    .forEach(e=>
-      e.classList.toggle(
-        "hidden",
-        e.id!==page
-      )
-    );
-
-  document.querySelectorAll("[data-page]")
-    .forEach(b=>
-      b.classList.toggle(
-        "active",
-        b.dataset.page===page
-      )
-    );
-
-  if(page==="statsPage"){
-    renderStats();
-  }
+  document.querySelectorAll(".page").forEach(e=>e.classList.toggle("hidden",e.id!==page));
+  document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  if(page==="statsPage")renderStats();
 }
-
-document.querySelectorAll("[data-page]")
-  .forEach(b=>{
-    b.addEventListener("click",()=>{
-      if(
-        b.dataset.page==="sessionsPage"&&
-        !editingSession
-      ){
-        resetSession();
-      }
-
-      show(b.dataset.page);
-    });
-  });
-
-/* データ取得 */
-
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{
+  if(b.dataset.page==="sessionsPage"&&!editingSession)resetSession();
+  show(b.dataset.page);
+  window.scrollTo({top:0,behavior:"smooth"});
+});
 async function load(){
   if(!user)return;
-
-  const names=[
-    "machines",
-    "store_groups",
-    "stores",
-    "sessions"
-  ];
-
-  const results=await Promise.all(
-    names.map(t=>
-      db.from(t)
-        .select("*")
-        .eq("user_id",user.id)
-    )
-  );
-
+  const names=["machines","store_groups","stores","sessions"];
+  const results=await Promise.all(names.map(t=>db.from(t).select("*").eq("user_id",user.id)));
   results.forEach(check);
-
-  [
-    machines,
-    groups,
-    stores,
-    sessions
-  ]=results.map(x=>x.data||[]);
-
-  sessions.sort((a,b)=>
-    String(b.played_on).localeCompare(
-      String(a.played_on)
-    )
-  );
-
+  [machines,groups,stores,sessions]=results.map(x=>x.data||[]);
+  sessions.sort((a,b)=>String(b.played_on).localeCompare(String(a.played_on)));
   render();
 }
+function setOptions(id,items,old){
+  $(id).innerHTML=items.map(x=>`<option value="${safe(x.id)}">${safe(x.name)}</option>`).join("");
+  if(items.some(x=>x.id===old))$(id).value=old;
+}
+function renderSeriesOptions(id,all=false){
+  const old=val(id);
+  const items=allSeries().map(name=>({id:name,name}));
+  if(all)items.unshift({id:"all",name:"すべて"});
+  setOptions(id,items,old);
+}
+function renderMachineChoice(seriesId,machineId,preferred=null){
+  const old=preferred||val(machineId);
+  setOptions(machineId,sortedMachines(machines.filter(m=>machineSeries(m)===val(seriesId))).map(m=>({id:m.id,name:m.name})),old);
+}
+function renderSeriesSelectors(){
+  const sm=val("sessionMachine"),bm=val("beforeMachine");
+  ["sessionSeries","beforeSeries"].forEach(id=>renderSeriesOptions(id));
+  ["machineListSeries","statsSeries"].forEach(id=>renderSeriesOptions(id,true));
+  if(machine(sm))$("sessionSeries").value=machineSeries(machine(sm));
+  if(machine(bm))$("beforeSeries").value=machineSeries(machine(bm));
+  renderMachineChoice("sessionSeries","sessionMachine",sm);
+  renderMachineChoice("beforeSeries","beforeMachine",bm);
+  $("seriesSuggestions").innerHTML=allSeries().map(n=>`<option value="${safe(n)}"></option>`).join("");
+}
+$("sessionSeries").onchange=()=>{renderMachineChoice("sessionSeries","sessionMachine");previewEV();};
+$("beforeSeries").onchange=()=>renderMachineChoice("beforeSeries","beforeMachine");
+$("machineListSeries").onchange=renderMachines;
+const rateOptions=id=>stores.filter(s=>s.store_group_id===id).map(s=>({id:s.id,name:`${s.play_rate_yen}円`}));
+function renderSessionRates(){
+  setOptions("sessionRate",rateOptions(val("sessionGroup")),val("sessionRate"));
+  previewSession();
+}
+function renderBeforeRates(){
+  setOptions("beforeRate",rateOptions(val("beforeGroup")),val("beforeRate"));
+}
+function renderSelectors(){
+  const gs=groups.map(g=>({id:g.id,name:g.name}));
+  setOptions("sessionGroup",gs,val("sessionGroup"));
+  setOptions("beforeGroup",gs,val("beforeGroup"));
+  renderSessionRates();renderBeforeRates();renderSeriesSelectors();
+}
+$("sessionGroup").onchange=renderSessionRates;
+$("sessionRate").onchange=previewSession;
+$("beforeGroup").onchange=renderBeforeRates;
 
-/* 期待値計算 */
-
+/* 期待値 */
 function specs(m){
-  const p=Number(
-    m?.jackpot_denominator
-  );
-
-  const ty=Number(
-    m?.average_ty_balls
-  );
-
-  if(!(p>0&&ty>0)){
-    return null;
-  }
-
-  return {p,ty};
+  const p=Number(m?.jackpot_denominator),ty=Number(m?.average_ty_balls);
+  return p>0&&ty>0?{p,ty}:null;
 }
-
-function expectedBalls(
-  m,
-  spins,
-  ballsIn
-){
+function expectedBalls(m,spins,ballsIn){
   const sp=specs(m);
-
-  if(
-    !sp||
-    !(spins>0&&ballsIn>0)
-  ){
-    return null;
-  }
-
-  const expectedPayout=
-    spins/sp.p*sp.ty;
-
-  const netBalls=
-    expectedPayout-ballsIn;
-
-  return {
-    expectedPayout,
-    netBalls,
-    rotation:
-      250*spins/ballsIn,
-    border:
-      250*sp.p/sp.ty
-  };
+  if(!sp||!(spins>0&&ballsIn>0))return null;
+  const expectedPayout=spins/sp.p*sp.ty;
+  return {expectedPayout,netBalls:expectedPayout-ballsIn,rotation:250*spins/ballsIn,border:250*sp.p/sp.ty};
 }
-
-function postEVWithFunding(params){
-  const {
-    m,
-    spins,
-    ballsIn,
-    cash,
-    cashBalls,
-    replay,
-    held,
-    fee,
-    exchange
-  }=params;
-
-  const base=expectedBalls(
-    m,
-    spins,
-    ballsIn
-  );
-
-  if(
-    !base||
-    !(exchange>0)
-  ){
-    return null;
-  }
-
-  const totalFunding=
-    cashBalls+replay+held;
-
-  if(totalFunding!==ballsIn){
-    return null;
-  }
-
-  const expectedPayoutYen=
-    base.expectedPayout*exchange;
-
-  const fundingCost=
-    cash+
-    (replay+held+fee)*exchange;
-
-  return {
-    ...base,
-    ev:
-      expectedPayoutYen-
-      fundingCost,
-    fundingCost,
-    expectedPayoutYen,
-    totalFunding
-  };
+function postEVWithFunding({m,spins,ballsIn,cash,cashBalls,replay,held,fee,exchange}){
+  const base=expectedBalls(m,spins,ballsIn);
+  if(!base||!(exchange>0)||cashBalls+replay+held!==ballsIn)return null;
+  const expectedPayoutYen=base.expectedPayout*exchange;
+  const fundingCost=cash+(replay+held+fee)*exchange;
+  return {...base,ev:expectedPayoutYen-fundingCost,fundingCost,expectedPayoutYen};
 }
-
-function plannedSpins(
-  hours,
-  speed,
-  hitMinutes,
-  p
-){
-  if(
-    !(
-      hours>0&&
-      speed>0&&
-      hitMinutes>=0&&
-      p>0
-    )
-  ){
-    return null;
-  }
-
-  return hours/(
-    1/speed+
-    hitMinutes/(60*p)
-  );
+function plannedSpins(hours,speed,hitMinutes,p){
+  return hours>0&&speed>0&&hitMinutes>=0&&p>0
+    ?hours/(1/speed+hitMinutes/(60*p)):null;
 }
-
-function preEV(
-  rotation,
-  params
-){
-  const {
-    n,p,ty,q,lend,
-    mode,available,fee,limit
-  }=params;
-
-  if(
-    !(rotation>0&&n>0)
-  ){
-    return null;
-  }
-
-  const consumption=
-    250*n/rotation;
-
-  const cap=mode==="cash"
-    ?0
-    :Math.min(
-      Math.max(0,available),
-      limit==null
-        ?Infinity
-        :Math.max(0,limit)
-    );
-
-  if(
-    mode==="replay"&&
-    consumption>cap
-  ){
-    return null;
-  }
-
-  const replay=Math.min(
-    consumption,
-    cap
-  );
-
-  const cashBalls=
-    consumption-replay;
-
-  const feeCost=
-    replay>0?fee*q:0;
-
-  const payout=
-    n/p*ty*q;
-
-  const cost=
-    cashBalls*lend+
-    replay*q+
-    feeCost;
-
-  return {
-    ev:payout-cost,
-    payout,
-    cost,
-    replay,
-    cashBalls,
-    consumption
-  };
+function preEV(rotation,{n,p,ty,q,lend,mode,available,fee,limit}){
+  if(!(rotation>0&&n>0))return null;
+  const consumption=250*n/rotation;
+  const cap=mode==="cash"?0:Math.min(Math.max(0,available),limit==null?Infinity:Math.max(0,limit));
+  if(mode==="replay"&&consumption>cap)return null;
+  const replay=Math.min(consumption,cap);
+  const cashBalls=consumption-replay;
+  const cost=cashBalls*lend+replay*q+(replay>0?fee*q:0);
+  const payout=n/p*ty*q;
+  return {ev:payout-cost,payout,cost,replay,cashBalls,consumption};
 }
-
-function requiredRotation(
-  target,
-  params
-){
-  const maxPayout=
-    params.n/
-    params.p*
-    params.ty*
-    params.q;
-
-  if(target>=maxPayout){
-    return null;
-  }
-
-  let low=0.000001;
-  let high=1;
-
+function requiredRotation(target,params){
+  if(target>=params.n/params.p*params.ty*params.q)return null;
+  let low=.000001,high=1;
   for(let i=0;i<100;i++){
-    const x=preEV(
-      high,
-      params
-    );
-
-    if(
-      x&&x.ev>=target
-    ){
-      break;
-    }
-
+    const x=preEV(high,params);
+    if(x&&x.ev>=target)break;
     high*=2;
   }
-
-  const highResult=preEV(
-    high,
-    params
-  );
-
-  if(
-    !highResult||
-    highResult.ev<target
-  ){
-    return null;
-  }
-
+  const h=preEV(high,params);
+  if(!h||h.ev<target)return null;
   for(let i=0;i<90;i++){
-    const mid=
-      (low+high)/2;
-
-    const x=preEV(
-      mid,
-      params
-    );
-
-    if(
-      x&&x.ev>=target
-    ){
-      high=mid;
-    }else{
-      low=mid;
-    }
+    const mid=(low+high)/2,x=preEV(mid,params);
+    if(x&&x.ev>=target)high=mid;
+    else low=mid;
   }
-
   return high;
 }
 
-/* 機種登録 */
-
+/* 機種 */
 function resetMachine(){
   editingMachine=null;
-
-  for(const id of [
-    "machineSeries",
-    "machineName",
-    "machineMaker",
-    "machineProbability",
-    "machineTy"
-  ]){
-    $(id).value="";
-  }
-
-  $("machineHeading").textContent=
-    "機種登録";
-
-  $("cancelMachine")
-    .classList.add("hidden");
-
+  ["machineSeries","machineName","machineMaker","machineProbability","machineTy"].forEach(id=>$(id).value="");
+  $("machineHeading").textContent="機種登録";
+  $("cancelMachine").classList.add("hidden");
   previewBorder();
 }
-
 function previewBorder(){
-  const p=num(
-    "machineProbability"
-  );
-
-  const ty=num(
-    "machineTy"
-  );
-
-  $("machineBorder").textContent=
-    p>0&&ty>0
-      ?`等価ボーダー：${(
-        250*p/ty
-      ).toFixed(2)}回/250玉`
-      :"等価ボーダー：—";
+  const p=num("machineProbability"),ty=num("machineTy");
+  $("machineBorder").textContent=p>0&&ty>0?`等価ボーダー：${(250*p/ty).toFixed(2)}回/250玉`:"等価ボーダー：—";
 }
-
 function editMachine(id){
-  const m=machine(id);
-  if(!m)return;
-
+  const m=machine(id);if(!m)return;
   editingMachine=id;
-
-  $("machineSeries").value=
-    machineSeries(m);
-
-  $("machineName").value=
-    m.name||"";
-
-  $("machineMaker").value=
-    m.manufacturer||"";
-
-  $("machineProbability").value=
-    m.jackpot_denominator??"";
-
-  $("machineTy").value=
-    m.average_ty_balls??"";
-
-  $("machineHeading").textContent=
-    "機種編集";
-
-  $("cancelMachine")
-    .classList.remove("hidden");
-
-  previewBorder();
-
-  setStatus(
-    "machineStatus",
-    ""
-  );
-
-  show("machinesPage");
-
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
+  $("machineSeries").value=machineSeries(m);
+  $("machineName").value=m.name||"";
+  $("machineMaker").value=m.manufacturer||"";
+  $("machineProbability").value=m.jackpot_denominator??"";
+  $("machineTy").value=m.average_ty_balls??"";
+  $("machineHeading").textContent="機種編集";
+  $("cancelMachine").classList.remove("hidden");
+  previewBorder();setStatus("machineStatus","");
+  show("machinesPage");window.scrollTo({top:0});
 }
-
 async function deleteMachine(id){
-  const m=machine(id);
-  if(!m)return;
-
-  if(
-    sessions.some(s=>
-      s.machine_id===id
-    )
-  ){
-    setStatus(
-      "machineStatus",
-      "稼働履歴がある機種は削除できません。",
-      "error"
-    );
-
-    show("machinesPage");
-    return;
+  const m=machine(id);if(!m)return;
+  if(sessions.some(s=>s.machine_id===id)){
+    setStatus("machineStatus","稼働履歴がある機種は削除できません。","error");show("machinesPage");return;
   }
-
-  if(!confirm(
-    `機種「${m.name}」を削除しますか？`
-  ))return;
-
+  if(!confirm(`機種「${m.name}」を削除しますか？`))return;
   try{
-    const result=await db
-      .from("machines")
-      .delete()
-      .eq("id",id)
-      .eq("user_id",user.id)
-      .select("id");
-
-    check(result);
-
-    if(result.data.length!==1){
-      throw Error(
-        "削除対象を確認できませんでした"
-      );
-    }
-
-    if(editingMachine===id){
-      resetMachine();
-    }
-
-    await load();
-
-    setStatus(
-      "machineStatus",
-      "機種を削除しました",
-      "success"
-    );
-  }catch(e){
-    showError(
-      "machineStatus",
-      e
-    );
-  }
+    const r=await db.from("machines").delete().eq("id",id).eq("user_id",user.id).select("id");
+    check(r);if(r.data.length!==1)throw Error("削除対象が見つかりません");
+    if(editingMachine===id)resetMachine();
+    await load();setStatus("machineStatus","機種を削除しました","success");
+  }catch(e){showError("machineStatus",e);}
 }
-
 function renderMachines(){
-  const selected=val(
-    "machineListSeries"
-  );
-
-  const names=allSeries()
-    .filter(name=>
-      selected==="all"||
-      selected===name
-    );
-
-  $("machineList").innerHTML=
-    names.map(name=>{
-      const items=sortedMachines(
-        machines.filter(m=>
-          machineSeries(m)===name
-        )
-      );
-
-      return `
-        <div class="series-block">
-          <div class="series-title">
-            ${safe(name)}
-            <span class="pill">
-              ${items.length}機種
-            </span>
-          </div>
-
-          <div class="series-body">
-            ${items.map(m=>`
-              <div class="item">
-                <b>${safe(m.name)}</b>
-
-                <p class="muted">
-                  メーカー：
-                  ${safe(m.manufacturer||"—")}
-                  <br>
-                  確率：
-                  1/${safe(
-                    m.jackpot_denominator??"—"
-                  )}
-                  <br>
-                  TY：
-                  ${safe(
-                    m.average_ty_balls??"—"
-                  )}玉
-                </p>
-
-                <div class="actions">
-                  <button
-                    class="secondary"
-                    data-edit-machine="${safe(m.id)}">
-                    編集
-                  </button>
-
-                  <button
-                    class="danger"
-                    data-delete-machine="${safe(m.id)}">
-                    削除
-                  </button>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `;
-    }).join("")||
-    "該当する機種がありません";
+  const selected=val("machineListSeries");
+  $("machineList").innerHTML=allSeries().filter(n=>selected==="all"||selected===n).map(name=>{
+    const items=sortedMachines(machines.filter(m=>machineSeries(m)===name));
+    return `<div class="series-block"><div class="series-title">${safe(name)} <span class="pill">${items.length}機種</span></div>
+      ${items.map(m=>`<div class="item"><b>${safe(m.name)}</b><p class="muted">メーカー：${safe(m.manufacturer||"—")}<br>確率：1/${safe(m.jackpot_denominator??"—")}<br>TY：${safe(m.average_ty_balls??"—")}玉</p>
+      <div class="actions"><button class="secondary" data-edit-machine="${safe(m.id)}">編集</button><button class="danger" data-delete-machine="${safe(m.id)}">削除</button></div></div>`).join("")}</div>`;
+  }).join("")||"該当する機種がありません";
 }
-
-$("machineList")
-  .addEventListener("click",e=>{
-    const edit=e.target.closest(
-      "[data-edit-machine]"
-    );
-
-    const del=e.target.closest(
-      "[data-delete-machine]"
-    );
-
-    if(edit){
-      editMachine(
-        edit.dataset.editMachine
-      );
-    }
-
-    if(del){
-      deleteMachine(
-        del.dataset.deleteMachine
-      );
-    }
-  });
-
-[
-  "machineProbability",
-  "machineTy"
-].forEach(id=>
-  $(id).addEventListener(
-    "input",
-    previewBorder
-  )
-);
-
-$("cancelMachine").onclick=
-  resetMachine;
-
+$("machineList").onclick=e=>{
+  const a=e.target.closest("[data-edit-machine]"),b=e.target.closest("[data-delete-machine]");
+  if(a)editMachine(a.dataset.editMachine);
+  if(b)deleteMachine(b.dataset.deleteMachine);
+};
+["machineProbability","machineTy"].forEach(id=>$(id).addEventListener("input",previewBorder));
+$("cancelMachine").onclick=resetMachine;
 $("saveMachine").onclick=async()=>{
   if(machineBusy)return;
-
-  machineBusy=true;
-
-  const btn=$("saveMachine");
-  btn.disabled=true;
-  btn.textContent="保存中…";
-
+  machineBusy=true;const btn=$("saveMachine");btn.disabled=true;
   try{
-    if(!user){
-      throw Error(
-        "ログインしてください"
-      );
-    }
-
-    const name=val(
-      "machineName"
-    );
-
-    const p=num(
-      "machineProbability"
-    );
-
-    const ty=num(
-      "machineTy"
-    );
-
-    if(
-      !name||
-      !(p>0)||
-      !(ty>0)
-    ){
-      throw Error(
-        "機種名・初当たり確率・TYを入力してください"
-      );
-    }
-
-    const payload={
-      name,
-      series_name:
-        normalizeSeries(
-          val("machineSeries")
-        ),
-      manufacturer:
-        val("machineMaker"),
-      jackpot_denominator:p,
-      average_ty_balls:ty,
-      border_rate:
-        250*p/ty
-    };
-
+    const name=val("machineName"),p=num("machineProbability"),ty=num("machineTy");
+    if(!name||!(p>0)||!(ty>0))throw Error("機種名・初当たり確率・TYを入力してください");
+    const payload={name,series_name:normalizeSeries(val("machineSeries")),manufacturer:val("machineMaker"),jackpot_denominator:p,average_ty_balls:ty,border_rate:250*p/ty};
     if(editingMachine){
-      const result=await db
-        .from("machines")
-        .update(payload)
-        .eq("id",editingMachine)
-        .eq("user_id",user.id)
-        .select("id");
-
-      check(result);
-
-      if(result.data.length!==1){
-        throw Error(
-          "更新対象が見つかりません"
-        );
-      }
-    }else{
-      check(
-        await db
-          .from("machines")
-          .insert({
-            ...payload,
-            user_id:user.id
-          })
-      );
-    }
-
-    await load();
-    resetMachine();
-
-    setStatus(
-      "machineStatus",
-      "機種を保存しました",
-      "success"
-    );
-  }catch(e){
-    showError(
-      "machineStatus",
-      e
-    );
-  }finally{
-    machineBusy=false;
-    btn.disabled=false;
-    btn.textContent=
-      "機種を保存";
-  }
+      const r=await db.from("machines").update(payload).eq("id",editingMachine).eq("user_id",user.id).select("id");
+      check(r);if(r.data.length!==1)throw Error("更新対象が見つかりません");
+    }else check(await db.from("machines").insert({...payload,user_id:user.id}));
+    await load();resetMachine();setStatus("machineStatus","機種を保存しました","success");
+  }catch(e){showError("machineStatus",e);}
+  finally{machineBusy=false;btn.disabled=false;}
 };
 
 /* 店舗 */
-
-function rateBlank(
-  rate="",
-  exchange="",
-  cat="low"
-){
-  return {
-    key:Math.random()
-      .toString(36)
-      .slice(2),
-    id:null,
-    rate,
-    exchange,
-    category:cat,
-    limit:"",
-    fee:"0",
-    opening:"0"
-  };
+function rateBlank(rate="",exchange="",cat="low"){
+  return {key:Math.random().toString(36).slice(2),id:null,rate,exchange,category:cat,limit:"",fee:"0",opening:"0"};
 }
-
 function renderRateRows(){
-  $("rateEditors").innerHTML=
-    rateRows.map((r,i)=>`
-      <div
-        class="rate"
-        data-key="${safe(r.key)}">
-
-        <h3>貸玉設定 ${i+1}</h3>
-
-        <label>貸玉単価（円/玉）</label>
-        <input
-          data-field="rate"
-          type="number"
-          min="0.00001"
-          step="any"
-          value="${safe(r.rate)}"
-          ${r.id?"readonly":""}>
-
-        <label>分析カテゴリ</label>
-        <select data-field="category">
-          <option
-            value="four"
-            ${r.category==="four"
-              ?"selected"
-              :""}>
-            4パチ
-          </option>
-
-          <option
-            value="low"
-            ${r.category==="low"
-              ?"selected"
-              :""}>
-            低貸し
-          </option>
-        </select>
-
-        <label>
-          100円相当の交換玉数
-        </label>
-        <input
-          data-field="exchange"
-          type="number"
-          min="0.00001"
-          step="any"
-          value="${safe(r.exchange)}">
-
-        <label>
-          再プレイ上限
-          （玉／日、空欄は無制限）
-        </label>
-        <input
-          data-field="limit"
-          type="number"
-          min="0"
-          step="1"
-          value="${safe(r.limit)}">
-
-        <label>
-          再プレイ手数料（玉）
-        </label>
-        <input
-          data-field="fee"
-          type="number"
-          min="0"
-          step="1"
-          value="${safe(r.fee)}">
-
-        <label>
-          管理開始時の貯玉（玉）
-        </label>
-        <input
-          data-field="opening"
-          type="number"
-          min="0"
-          step="1"
-          value="${safe(r.opening)}">
-
-        ${r.id
-          ?`<p class="muted">
-              既存レートは維持します。
-            </p>`
-          :`<button
-              class="secondary"
-              data-remove="${safe(r.key)}">
-              この新規レートを外す
-            </button>`
-        }
-      </div>
-    `).join("");
+  $("rateEditors").innerHTML=rateRows.map((r,i)=>`
+  <div class="rate" data-key="${safe(r.key)}"><h3>貸玉設定 ${i+1}</h3>
+  <label>貸玉単価（円/玉）</label><input data-field="rate" type="number" min=".00001" step="any" value="${safe(r.rate)}" ${r.id?"readonly":""}>
+  <label>分析カテゴリ</label><select data-field="category"><option value="four" ${r.category==="four"?"selected":""}>4パチ</option><option value="low" ${r.category==="low"?"selected":""}>低貸し</option></select>
+  <label>100円相当の交換玉数</label><input data-field="exchange" type="number" min=".00001" step="any" value="${safe(r.exchange)}">
+  <label>再プレイ上限（玉／日、空欄は無制限）</label><input data-field="limit" type="number" min="0" step="1" value="${safe(r.limit)}">
+  <label>再プレイ手数料（玉）</label><input data-field="fee" type="number" min="0" step="1" value="${safe(r.fee)}">
+  <label>管理開始時の貯玉（玉）</label><input data-field="opening" type="number" min="0" step="1" value="${safe(r.opening)}">
+  ${r.id?'<p class="muted">既存レートは維持します。</p>':`<button class="secondary" data-remove="${safe(r.key)}">この新規レートを外す</button>`}</div>`).join("");
 }
-
 function resetStore(){
-  editingGroup=null;
-
-  $("storeName").value="";
-  $("storeHeading").textContent=
-    "店舗登録";
-
-  $("cancelStore")
-    .classList.add("hidden");
-
-  rateRows=[
-    rateBlank(
-      "4",
-      "25",
-      "four"
-    ),
-    rateBlank(
-      "1",
-      "100",
-      "low"
-    )
-  ];
-
-  renderRateRows();
+  editingGroup=null;$("storeName").value="";$("storeHeading").textContent="店舗登録";
+  $("cancelStore").classList.add("hidden");
+  rateRows=[rateBlank("4","25","four"),rateBlank("1","100","low")];renderRateRows();
 }
-
 function editStore(id){
-  const g=group(id);
-  if(!g)return;
-
-  editingGroup=id;
-
-  $("storeName").value=
-    g.name;
-
-  $("storeHeading").textContent=
-    "店舗編集";
-
-  $("cancelStore")
-    .classList.remove("hidden");
-
-  rateRows=stores
-    .filter(s=>
-      s.store_group_id===id
-    )
-    .map(s=>({
-      ...rateBlank(
-        String(
-          s.play_rate_yen??""
-        ),
-        Number(s.exchange_rate)>0
-          ?String(
-            100/
-            Number(s.exchange_rate)
-          )
-          :"",
-        category(s)
-      ),
-      id:s.id,
-      limit:
-        s.replay_limit_balls==null
-          ?""
-          :String(
-            s.replay_limit_balls
-          ),
-      fee:String(
-        s.replay_fee_balls??0
-      ),
-      opening:String(
-        s.opening_balls??0
-      )
-    }));
-
-  renderRateRows();
-
-  setStatus(
-    "storeStatus",
-    ""
-  );
-
-  show("storesPage");
-}
-
-for(const eventName of [
-  "input",
-  "change"
-]){
-  $("rateEditors")
-    .addEventListener(
-      eventName,
-      e=>{
-        const box=e.target.closest(
-          "[data-key]"
-        );
-
-        if(!box)return;
-
-        const r=rateRows.find(
-          x=>
-            x.key===
-            box.dataset.key
-        );
-
-        if(
-          r&&
-          e.target.dataset.field
-        ){
-          r[
-            e.target.dataset.field
-          ]=e.target.value;
-        }
-      }
-    );
-}
-
-$("rateEditors")
-  .addEventListener("click",e=>{
-    const b=e.target.closest(
-      "[data-remove]"
-    );
-
-    if(!b)return;
-
-    rateRows=rateRows.filter(
-      r=>
-        r.key!==
-        b.dataset.remove
-    );
-
-    renderRateRows();
-  });
-
-$("addRate").onclick=()=>{
-  rateRows.push(
-    rateBlank()
-  );
-
-  renderRateRows();
-};
-
-$("cancelStore").onclick=
-  resetStore;
-
-$("saveStore").onclick=async()=>{
-  if(storeBusy)return;
-
-  storeBusy=true;
-
-  const btn=$("saveStore");
-  btn.disabled=true;
-  btn.textContent="保存中…";
-
-  try{
-    if(!user){
-      throw Error(
-        "ログインしてください"
-      );
-    }
-
-    const name=val(
-      "storeName"
-    );
-
-    if(!name){
-      throw Error(
-        "店舗名を入力してください"
-      );
-    }
-
-    if(!rateRows.length){
-      throw Error(
-        "貸玉レートを追加してください"
-      );
-    }
-
-    const seen=new Set();
-
-    for(const r of rateRows){
-      const rate=Number(
-        r.rate
-      );
-
-      const ex=Number(
-        r.exchange
-      );
-
-      if(
-        !(rate>0&&ex>0)
-      ){
-        throw Error(
-          "貸玉単価と交換玉数を入力してください"
-        );
-      }
-
-      if(seen.has(rate)){
-        throw Error(
-          "同じ貸玉レートが重複しています"
-        );
-      }
-
-      seen.add(rate);
-
-      for(const key of [
-        "fee",
-        "opening",
-        ...(r.limit===""
-          ?[]
-          :["limit"])
-      ]){
-        const x=Number(
-          r[key]
-        );
-
-        if(
-          !Number.isSafeInteger(x)||
-          x<0
-        ){
-          throw Error(
-            "玉数は0以上の整数で入力してください"
-          );
-        }
-      }
-    }
-
-    let gid=editingGroup;
-
-    if(!gid){
-      setStatus(
-        "storeStatus",
-        "店舗を登録しています…"
-      );
-
-      const result=await db
-        .from("store_groups")
-        .insert({
-          user_id:user.id,
-          name
-        })
-        .select("id")
-        .single();
-
-      gid=check(result).id;
-      editingGroup=gid;
-    }else{
-      check(
-        await db
-          .from("store_groups")
-          .update({name})
-          .eq("id",gid)
-          .eq("user_id",user.id)
-      );
-    }
-
-    for(
-      let i=0;
-      i<rateRows.length;
-      i++
-    ){
-      const r=rateRows[i];
-
-      setStatus(
-        "storeStatus",
-        `貸玉設定 ${
-          i+1
-        }/${
-          rateRows.length
-        } を保存中…`
-      );
-
-      const payload={
-        name,
-        store_group_id:gid,
-        play_rate_yen:
-          Number(r.rate),
-        purchase_rate:
-          Number(r.rate),
-        analysis_category:
-          r.category,
-        exchange_rate:
-          100/Number(r.exchange),
-        replay_limit_balls:
-          r.limit===""
-            ?null
-            :Number(r.limit),
-        replay_fee_balls:
-          Number(r.fee),
-        opening_balls:
-          Number(r.opening)
-      };
-
-      const result=r.id
-        ?await db
-          .from("stores")
-          .update(payload)
-          .eq("id",r.id)
-          .eq("user_id",user.id)
-        :await db
-          .from("stores")
-          .insert({
-            ...payload,
-            user_id:user.id
-          })
-          .select("id")
-          .single();
-
-      if(result.error){
-        throw Error(
-          `貸玉設定${i+1}：${
-            result.error.message
-          }`
-        );
-      }
-
-      if(!r.id){
-        r.id=result.data.id;
-      }
-    }
-
-    await load();
-    resetStore();
-
-    setStatus(
-      "storeStatus",
-      "店舗を保存しました",
-      "success"
-    );
-  }catch(e){
-    showError(
-      "storeStatus",
-      e
-    );
-  }finally{
-    storeBusy=false;
-    btn.disabled=false;
-    btn.textContent=
-      "店舗を保存";
-  }
-};
-
-function renderStores(){
-  $("storeList").innerHTML=
-    groups.map(g=>`
-      <div class="item">
-        <b>${safe(g.name)}</b>
-
-        ${stores
-          .filter(s=>
-            s.store_group_id===g.id
-          )
-          .map(s=>`
-            <p class="muted">
-              ${safe(
-                s.play_rate_yen
-              )}円パチ／
-              ${
-                category(s)==="four"
-                  ?"4パチ"
-                  :"低貸し"
-              }
-              <br>
-              交換単価：
-              ${
-                Number(
-                  s.exchange_rate||0
-                ).toFixed(5)
-              }円/玉
-              <br>
-              初期貯玉：
-              ${safe(
-                s.opening_balls??0
-              )}玉
-            </p>
-          `).join("")
-        }
-
-        <button
-          class="secondary"
-          data-edit-store="${safe(g.id)}">
-          編集
-        </button>
-      </div>
-    `).join("")||
-    "店舗がありません";
-}
-
-$("storeList")
-  .addEventListener("click",e=>{
-    const b=e.target.closest(
-      "[data-edit-store]"
-    );
-
-    if(b){
-      editStore(
-        b.dataset.editStore
-      );
-    }
-  });
-
-/* 店舗・機種選択肢 */
-
-function rateOptions(groupId){
-  return stores
-    .filter(s=>
-      s.store_group_id===groupId
-    )
-    .map(s=>({
-      id:s.id,
-      name:`${s.play_rate_yen}円`
-    }));
-}
-
-function renderSelectors(){
-  const sg=val(
-    "sessionGroup"
-  );
-
-  const bg=val(
-    "beforeGroup"
-  );
-
-  const gs=groups.map(g=>({
-    id:g.id,
-    name:g.name
+  const g=group(id);if(!g)return;
+  editingGroup=id;$("storeName").value=g.name;$("storeHeading").textContent="店舗編集";
+  $("cancelStore").classList.remove("hidden");
+  rateRows=stores.filter(s=>s.store_group_id===id).map(s=>({
+    ...rateBlank(String(s.play_rate_yen??""),Number(s.exchange_rate)>0?String(100/Number(s.exchange_rate)):"",category(s)),
+    id:s.id,limit:s.replay_limit_balls==null?"":String(s.replay_limit_balls),
+    fee:String(s.replay_fee_balls??0),opening:String(s.opening_balls??0)
   }));
-
-  setOptions(
-    "sessionGroup",
-    gs,
-    sg
-  );
-
-  setOptions(
-    "beforeGroup",
-    gs,
-    bg
-  );
-
-  renderSessionRates();
-  renderBeforeRates();
-
-  renderSeriesSelectors();
+  renderRateRows();setStatus("storeStatus","");show("storesPage");
 }
-
-function renderSessionRates(){
-  const old=val(
-    "sessionRate"
-  );
-
-  setOptions(
-    "sessionRate",
-    rateOptions(
-      val("sessionGroup")
-    ),
-    old
-  );
-
-  previewSession();
+["input","change"].forEach(eventName=>$("rateEditors").addEventListener(eventName,e=>{
+  const box=e.target.closest("[data-key]");if(!box)return;
+  const r=rateRows.find(x=>x.key===box.dataset.key);
+  if(r&&e.target.dataset.field)r[e.target.dataset.field]=e.target.value;
+}));
+$("rateEditors").addEventListener("click",e=>{
+  const b=e.target.closest("[data-remove]");if(!b)return;
+  rateRows=rateRows.filter(r=>r.key!==b.dataset.remove);renderRateRows();
+});
+$("addRate").onclick=()=>{rateRows.push(rateBlank());renderRateRows();};
+$("cancelStore").onclick=resetStore;
+$("saveStore").onclick=async()=>{
+  if(storeBusy)return;storeBusy=true;const btn=$("saveStore");btn.disabled=true;
+  try{
+    const name=val("storeName");
+    if(!name||!rateRows.length)throw Error("店舗名と貸玉レートを入力してください");
+    const seen=new Set();
+    for(const r of rateRows){
+      const rate=Number(r.rate),ex=Number(r.exchange);
+      if(!(rate>0&&ex>0)||seen.has(rate))throw Error("貸玉単価・交換玉数・レートの重複を確認してください");
+      seen.add(rate);
+      for(const key of ["fee","opening",...(r.limit===""?[]:["limit"])]){
+        const x=Number(r[key]);
+        if(!Number.isSafeInteger(x)||x<0)throw Error("玉数は0以上の整数で入力してください");
+      }
+    }
+    let gid=editingGroup;
+    if(!gid){
+      const r=await db.from("store_groups").insert({user_id:user.id,name}).select("id").single();
+      gid=check(r).id;editingGroup=gid;
+    }else check(await db.from("store_groups").update({name}).eq("id",gid).eq("user_id",user.id));
+    for(const r of rateRows){
+      const payload={
+        name,store_group_id:gid,play_rate_yen:Number(r.rate),purchase_rate:Number(r.rate),
+        analysis_category:r.category,exchange_rate:100/Number(r.exchange),
+        replay_limit_balls:r.limit===""?null:Number(r.limit),
+        replay_fee_balls:Number(r.fee),opening_balls:Number(r.opening)
+      };
+      const result=r.id
+        ?await db.from("stores").update(payload).eq("id",r.id).eq("user_id",user.id)
+        :await db.from("stores").insert({...payload,user_id:user.id}).select("id").single();
+      check(result);if(!r.id)r.id=result.data.id;
+    }
+    await load();resetStore();setStatus("storeStatus","店舗を保存しました","success");
+  }catch(e){showError("storeStatus",e);}
+  finally{storeBusy=false;btn.disabled=false;}
+};
+function renderStores(){
+  $("storeList").innerHTML=groups.map(g=>`<div class="item"><b>${safe(g.name)}</b>
+    ${stores.filter(s=>s.store_group_id===g.id).map(s=>`<p class="muted">${safe(s.play_rate_yen)}円パチ／${category(s)==="four"?"4パチ":"低貸し"}<br>交換単価：${Number(s.exchange_rate||0).toFixed(5)}円/玉<br>初期貯玉：${safe(s.opening_balls??0)}玉</p>`).join("")}
+    <button class="secondary" data-edit-store="${safe(g.id)}">編集</button></div>`).join("")||"店舗がありません";
 }
-
-function renderBeforeRates(){
-  const old=val(
-    "beforeRate"
-  );
-
-  setOptions(
-    "beforeRate",
-    rateOptions(
-      val("beforeGroup")
-    ),
-    old
-  );
-}
-
-$("sessionGroup").onchange=
-  renderSessionRates;
-
-$("sessionRate").onchange=
-  previewSession;
-
-$("beforeGroup").onchange=
-  renderBeforeRates;
+$("storeList").onclick=e=>{
+  const b=e.target.closest("[data-edit-store]");if(b)editStore(b.dataset.editStore);
+};
 
 /* 稼働前 */
-
 function toggleBeforeFunding(){
-  $("beforeReplayWrap")
-    .classList.toggle(
-      "hidden",
-      val("beforeFunding")==="cash"
-    );
+  $("beforeReplayWrap").classList.toggle("hidden",val("beforeFunding")==="cash");
 }
-
-$("beforeFunding").onchange=
-  toggleBeforeFunding;
-
+$("beforeFunding").onchange=toggleBeforeFunding;
 $("calculateBefore").onclick=()=>{
-  const out=$(
-    "beforeResult"
-  );
-
+  const out=$("beforeResult");
   try{
-    const m=machine(
-      val("beforeMachine")
-    );
-
-    const st=store(
-      val("beforeRate")
-    );
-
-    const sp=specs(m);
-
-    if(!sp||!st){
-      throw Error(
-        "機種と店舗を選択してください"
-      );
-    }
-
-    const hours=num(
-      "beforeHours"
-    );
-
-    const speed=num(
-      "beforeSpeed"
-    );
-
-    const hitMin=num(
-      "beforeHitMinutes"
-    );
-
-    const target=num(
-      "beforeTarget"
-    );
-
-    if(
-      val("beforeSpeed")===""||
-      val("beforeHitMinutes")===""||
-      !(
-        hours>0&&
-        speed>0&&
-        hitMin>=0
-      )||
-      !Number.isFinite(target)
-    ){
-      throw Error(
-        "時間・通常回転速度・大当たり消化時間を入力してください"
-      );
-    }
-
-    const n=plannedSpins(
-      hours,
-      speed,
-      hitMin,
-      sp.p
-    );
-
-    const mode=val(
-      "beforeFunding"
-    );
-
-    const available=
-      mode==="cash"
-        ?0
-        :num(
-          "beforeReplayAvailable"
-        );
-
-    if(
-      mode!=="cash"&&
-      (
-        val(
-          "beforeReplayAvailable"
-        )===""||
-        !Number.isSafeInteger(
-          available
-        )||
-        available<0
-      )
-    ){
-      throw Error(
-        "使用可能な貯玉を入力してください"
-      );
-    }
-
-    const q=Number(
-      st.exchange_rate
-    );
-
-    const lend=Number(
-      st.play_rate_yen
-    );
-
-    const fee=Number(
-      st.replay_fee_balls||0
-    );
-
-    const limit=
-      st.replay_limit_balls==null
-        ?null
-        :Number(
-          st.replay_limit_balls
-        );
-
-    if(
-      !(q>0&&lend>0)
-    ){
-      throw Error(
-        "店舗の交換条件が不正です"
-      );
-    }
-
-    const params={
-      n,
-      p:sp.p,
-      ty:sp.ty,
-      q,
-      lend,
-      mode,
-      available,
-      fee,
-      limit
-    };
-
-    const targets=[
-      ...new Set([
-        0,
-        3000,
-        5000,
-        10000,
-        20000,
-        target
-      ])
-    ].sort((a,b)=>a-b);
-
-    const rows=targets.map(t=>{
-      const r=requiredRotation(
-        t,
-        params
-      );
-
-      return `
-        <tr>
-          <td>${yen(t)}</td>
-          <td>
-            ${
-              r===null
-                ?"算出不可"
-                :r.toFixed(2)+"回"
-            }
-          </td>
-        </tr>
-      `;
+    const m=machine(val("beforeMachine")),st=store(val("beforeRate")),sp=specs(m);
+    if(!sp||!st)throw Error("機種と店舗を選択してください");
+    const hours=num("beforeHours"),speed=num("beforeSpeed"),hitMin=num("beforeHitMinutes"),target=num("beforeTarget");
+    if(val("beforeSpeed")===""||val("beforeHitMinutes")===""||!(hours>0&&speed>0&&hitMin>=0)||!Number.isFinite(target))throw Error("時間・通常回転速度・消化時間を入力してください");
+    const n=plannedSpins(hours,speed,hitMin,sp.p),mode=val("beforeFunding");
+    const available=mode==="cash"?0:num("beforeReplayAvailable");
+    if(mode!=="cash"&&(!Number.isSafeInteger(available)||available<0))throw Error("使用可能な貯玉を入力してください");
+    const q=Number(st.exchange_rate),lend=Number(st.play_rate_yen);
+    if(!(q>0&&lend>0))throw Error("店舗の交換条件が不正です");
+    const params={n,p:sp.p,ty:sp.ty,q,lend,mode,available,
+      fee:Number(st.replay_fee_balls||0),
+      limit:st.replay_limit_balls==null?null:Number(st.replay_limit_balls)};
+    const selected=requiredRotation(target,params);
+    const rows=[...new Set([0,3000,5000,10000,20000,target])].sort((a,b)=>a-b).map(t=>{
+      const r=requiredRotation(t,params);
+      return `<tr><td>${yen(t)}</td><td>${r===null?"算出不可":r.toFixed(2)+"回"}</td></tr>`;
     }).join("");
-
-    const selected=requiredRotation(
-      target,
-      params
-    );
-
-    const equalBorder=
-      250*sp.p/sp.ty;
-
-    out.innerHTML=`
-      <div class="card">
-        <h3>
-          ${safe(
-            machineSeries(m)
-          )}
-        </h3>
-
-        <p class="muted">
-          ${safe(m.name)}
-        </p>
-
-        <h3>必要回転率</h3>
-
-        <div class="number">
-          ${
-            selected===null
-              ?"算出不可"
-              :selected.toFixed(2)+
-                "回/250玉"
-          }
-        </div>
-
-        <p class="muted">
-          等価ボーダー：
-          ${equalBorder.toFixed(2)}
-          回/250玉
-          <br>
-          想定通常回転数：
-          ${n.toFixed(1)}回
-          <br>
-          期待初当たり：
-          ${(n/sp.p).toFixed(2)}回
-        </p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>目標期待値</th>
-              <th>必要回転率</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-
-        <div class="notice">
-          現金・再プレイの単価差を
-          考慮した簡易モデルです。
-          初当たり後の持ち玉移行や
-          投資額の確率分布は
-          未反映です。
-        </div>
-      </div>
-    `;
-  }catch(e){
-    out.innerHTML=`
-      <p class="status error">
-        ${safe(e.message)}
-      </p>
-    `;
-  }
+    out.innerHTML=`<div class="notice"><b>${safe(machineSeries(m))} / ${safe(m.name)}</b></div>
+      <h3>必要回転率</h3><div class="number">${selected===null?"算出不可":selected.toFixed(2)+"回/250玉"}</div>
+      <p class="muted">等価ボーダー：${(250*sp.p/sp.ty).toFixed(2)}回/250玉<br>想定通常回転数：${n.toFixed(1)}回<br>期待初当たり：${(n/sp.p).toFixed(2)}回</p>
+      <table><thead><tr><th>目標期待値</th><th>必要回転率</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="notice">現金・再プレイの単価差を反映した簡易モデルです。初当たり後の持ち玉移行と投資額の確率分布は未反映のため、厳密な必要回転率ではありません。</div>`;
+  }catch(e){out.innerHTML=`<p class="status error">${safe(e.message)}</p>`;}
 };
 
-/* 稼働入力 */
-
-function investmentValues(){
-  return {
-    cashBalls:num(
-      "cashBalls"
-    ),
-    replay:num(
-      "replay"
-    ),
-    held:num(
-      "heldBalls"
-    ),
-    ballsIn:num(
-      "ballsIn"
-    )
-  };
-}
-
+/* 稼働記録 */
 function previewInvestment(){
-  const x=investmentValues();
-
-  const total=
-    x.cashBalls+
-    x.replay+
-    x.held;
-
-  const diff=
-    x.ballsIn-total;
-
-  $("investmentPreview").innerHTML=`
-    投資内訳の合計：
-    ${total.toLocaleString()}玉
-    <br>
-    通常回転消費：
-    ${x.ballsIn.toLocaleString()}玉
-    <br>
-    差分：
-    ${diff.toLocaleString()}玉
-    <br>
-    ${
-      diff===0
-        ?"内訳と通常回転消費玉数が一致しています。"
-        :"内訳と通常回転消費玉数が一致していません。"
-    }
-  `;
+  const total=num("cashBalls")+num("replay")+num("heldBalls");
+  const diff=num("ballsIn")-total;
+  $("investmentPreview").textContent=`投資内訳の合計：${total.toLocaleString()}玉\n通常回転消費：${num("ballsIn").toLocaleString()}玉\n差分：${diff.toLocaleString()}玉\n${diff===0?"内訳が一致しています。":"内訳が一致していません。"}`;
 }
-
 function previewSession(){
-  const st=store(
-    val("sessionRate")
-  );
-
-  $("sessionPreview").textContent=
-    st
-      ?`交換単価：${
-        Number(
-          st.exchange_rate
-        ).toFixed(5)
-      }円/玉`
-      :"店舗・レートを選択してください";
-
-  previewInvestment();
-  previewEV();
+  const st=store(val("sessionRate"));
+  $("sessionPreview").textContent=st?`交換単価：${Number(st.exchange_rate).toFixed(5)}円/玉`:"店舗・レートを選択してください";
+  previewInvestment();previewEV();
 }
-
 function toggleEV(){
-  $("manualEvWrap")
-    .classList.toggle(
-      "hidden",
-      val("evMode")!=="manual"
-    );
-
+  $("manualEvWrap").classList.toggle("hidden",val("evMode")!=="manual");
   previewEV();
 }
-
 function previewEV(){
-  const out=$(
-    "evPreview"
-  );
-
-  const mode=val(
-    "evMode"
-  );
-
-  if(mode==="none"){
-    out.textContent=
-      "期待値は未登録として保存します。";
-    return;
-  }
-
-  if(mode==="manual"){
-    out.textContent=
-      "別途算出した期待値と計算根拠を保存します。";
-    return;
-  }
-
-  const m=machine(
-    val("sessionMachine")
-  );
-
-  const st=store(
-    val("sessionRate")
-  );
-
+  const out=$("evPreview"),mode=val("evMode");
+  if(mode==="none"){out.textContent="期待値は未登録として保存します。";return;}
+  if(mode==="manual"){out.textContent="別途算出した期待値と計算根拠を保存します。";return;}
+  const st=store(val("sessionRate"));
   const result=postEVWithFunding({
-    m,
-    spins:num("spins"),
-    ballsIn:num("ballsIn"),
-    cash:num("cash"),
-    cashBalls:num("cashBalls"),
-    replay:num("replay"),
-    held:num("heldBalls"),
-    fee:num("replayFee"),
-    exchange:Number(
-      st?.exchange_rate
-    )
+    m:machine(val("sessionMachine")),spins:num("spins"),ballsIn:num("ballsIn"),
+    cash:num("cash"),cashBalls:num("cashBalls"),replay:num("replay"),
+    held:num("heldBalls"),fee:num("replayFee"),exchange:Number(st?.exchange_rate)
   });
-
-  if(!result){
-    out.textContent=
-      "期待値計算には通常回転数・通常回転消費玉数・一致する投資内訳が必要です。";
-    return;
-  }
-
-  out.textContent=
-    `条件付き期待値：${
-      yen(result.ev)
-    }\n`+
-    `実測回転率：${
-      result.rotation.toFixed(2)
-    }回/250玉\n`+
-    `投資評価額：${
-      yen(result.fundingCost)
-    }\n`+
-    `期待獲得価値：${
-      yen(result.expectedPayoutYen)
-    }`;
+  out.textContent=result
+    ?`条件付き期待値：${yen(result.ev)}\n実測回転率：${result.rotation.toFixed(2)}回/250玉\n投資評価額：${yen(result.fundingCost)}\n期待獲得価値：${yen(result.expectedPayoutYen)}`
+    :"通常回転数・消費玉数・一致する投資内訳を入力してください。";
 }
-
-$("evMode").onchange=
-  toggleEV;
-
-[
-  "cash",
-  "cashBalls",
-  "replay",
-  "replayFee",
-  "heldBalls",
-  "ballsIn",
-  "spins"
-].forEach(id=>{
-  $(id).addEventListener(
-    "input",
-    ()=>{
-      previewInvestment();
-      previewEV();
-    }
-  );
-});
-
-$("sessionMachine")
-  .addEventListener(
-    "change",
-    previewEV
-  );
-
+$("evMode").onchange=toggleEV;
+["cash","cashBalls","replay","replayFee","heldBalls","ballsIn","spins"].forEach(id=>$(id).addEventListener("input",()=>{
+  previewInvestment();previewEV();
+}));
+$("sessionMachine").onchange=previewEV;
 function resetSession(){
-  editingSession=null;
-
-  $("sessionHeading").textContent=
-    "稼働記録";
-
-  $("cancelSession")
-    .classList.add("hidden");
-
-  $("playedOn").value=
-    today();
-
-  for(const id of [
-    "cash",
-    "cashBalls",
-    "replay",
-    "replayFee",
-    "heldBalls",
-    "deposit",
-    "ballsOut",
-    "returned",
-    "ballsIn",
-    "spins"
-  ]){
-    $(id).value="0";
-  }
-
-  $("manualProfit").value="";
-  $("manualEv").value="";
-  $("evBasis").value="";
-  $("evMode").value="model";
-  $("notes").value="";
-
-  toggleEV();
-  previewSession();
+  editingSession=null;$("sessionHeading").textContent="稼働記録";
+  $("cancelSession").classList.add("hidden");
+  $("playedOn").value=today();updateDateDisplay();
+  ["cash","cashBalls","replay","replayFee","heldBalls","deposit","ballsOut","returned","ballsIn","spins"].forEach(id=>$(id).value="0");
+  $("manualProfit").value="";$("manualEv").value="";$("evBasis").value="";
+  $("evMode").value="model";$("notes").value="";
+  setStatus("sessionStatus","");toggleEV();previewSession();
 }
-
 function editSession(id){
-  const s=session(id);
-  if(!s)return;
-
-  const d=s.details||{};
-
-  const st=store(
-    d.store_id
-  );
-
-  if(!st){
-    setStatus(
-      "globalStatus",
-      "この履歴には店舗レートの紐付けがないため、安全に編集できません。",
-      "error"
-    );
-
-    return;
-  }
-
+  const s=session(id);if(!s)return;
+  const d=s.details||{},st=store(d.store_id);
+  if(!st){setStatus("globalStatus","店舗レートとの紐付けがないため編集できません。","error");return;}
   editingSession=id;
-
-  $("sessionGroup").value=
-    st.store_group_id;
-
-  renderSessionRates();
-
-  $("sessionRate").value=
-    st.id;
-
-  const m=machine(
-    s.machine_id
-  );
-
-  if(m){
-    $("sessionSeries").value=
-      machineSeries(m);
-
-    renderMachineChoice(
-      "sessionSeries",
-      "sessionMachine",
-      m.id
-    );
-  }
-
-  $("playedOn").value=
-    s.played_on||today();
-
-  $("cash").value=
-    s.cash_investment_yen??0;
-
-  $("cashBalls").value=
-    d.investment_breakdown_version==="v2"
-      ?d.cash_purchased_balls??0
-      :0;
-
-  $("replay").value=
-    d.saved_balls_invested??0;
-
-  $("replayFee").value=
-    d.replay_fee_balls??0;
-
-  $("heldBalls").value=
-    d.investment_breakdown_version==="v2"
-      ?d.held_balls_used??0
-      :0;
-
-  $("deposit").value=
-    d.deposited_balls??0;
-
-  $("ballsOut").value=
-    s.balls_out??0;
-
-  $("returned").value=
-    d.cash_returned_yen??0;
-
-  $("ballsIn").value=
-    s.balls_in??0;
-
-  $("spins").value=
-    s.normal_spins??0;
-
-  $("notes").value=
-    s.notes||"";
-
-  $("manualProfit").value=
-    d.profit_manually_entered
-      ?d.actual_profit_yen??""
-      :"";
-
-  $("evMode").value=
-    d.post_ev_mode||"none";
-
-  $("manualEv").value=
-    d.post_ev_mode==="manual"
-      ?d.post_ev_yen??""
-      :"";
-
-  $("evBasis").value=
-    d.post_ev_basis||"";
-
-  $("sessionHeading").textContent=
-    "稼働実績を編集";
-
-  $("cancelSession")
-    .classList.remove("hidden");
-
-  toggleEV();
-  previewSession();
-
-  if(
-    d.investment_breakdown_version!=="v2"
-  ){
-    setStatus(
-      "sessionStatus",
-      "旧形式の稼働です。現金借玉数・持ち玉使用数は未登録のため、確認して入力してください。",
-      "error"
-    );
-  }else{
-    setStatus(
-      "sessionStatus",
-      ""
-    );
-  }
-
-  show("sessionsPage");
-
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
+  $("sessionGroup").value=st.store_group_id;renderSessionRates();
+  $("sessionRate").value=st.id;
+  const m=machine(s.machine_id);
+  if(m){$("sessionSeries").value=machineSeries(m);renderMachineChoice("sessionSeries","sessionMachine",m.id);}
+  $("playedOn").value=s.played_on||today();updateDateDisplay();
+  $("cash").value=s.cash_investment_yen??0;
+  $("cashBalls").value=d.investment_breakdown_version==="v2"?d.cash_purchased_balls??0:0;
+  $("replay").value=d.saved_balls_invested??0;
+  $("replayFee").value=d.replay_fee_balls??0;
+  $("heldBalls").value=d.investment_breakdown_version==="v2"?d.held_balls_used??0:0;
+  $("deposit").value=d.deposited_balls??0;
+  $("ballsOut").value=s.balls_out??0;
+  $("returned").value=d.cash_returned_yen??0;
+  $("ballsIn").value=s.balls_in??0;
+  $("spins").value=s.normal_spins??0;
+  $("notes").value=s.notes||"";
+  $("manualProfit").value=d.profit_manually_entered?d.actual_profit_yen??"":"";
+  $("evMode").value=d.post_ev_mode||"none";
+  $("manualEv").value=d.post_ev_mode==="manual"?d.post_ev_yen??"":"";
+  $("evBasis").value=d.post_ev_basis||"";
+  $("sessionHeading").textContent="稼働実績を編集";
+  $("cancelSession").classList.remove("hidden");
+  toggleEV();previewSession();
+  setStatus("sessionStatus",d.investment_breakdown_version!=="v2"?"旧形式の稼働です。現金借玉数・持ち玉使用数を確認して入力してください。":"","error");
+  show("sessionsPage");window.scrollTo({top:0});
 }
-
 async function deleteSession(id){
-  const s=session(id);
-  if(!s)return;
-
-  const name=
-    machine(s.machine_id)?.name||
-    "機種不明";
-
-  if(!confirm(
-    `${s.played_on}の「${name}」を削除しますか？\n収支・期待値・欠損余剰も再集計されます。`
-  ))return;
-
+  const s=session(id);if(!s)return;
+  if(!confirm(`${formatDateJP(s.played_on)}の稼働を削除しますか？`))return;
   try{
-    const result=await db
-      .from("sessions")
-      .delete()
-      .eq("id",id)
-      .eq("user_id",user.id)
-      .select("id");
-
-    check(result);
-
-    if(result.data.length!==1){
-      throw Error(
-        "削除対象を確認できませんでした"
-      );
-    }
-
-    if(editingSession===id){
-      resetSession();
-    }
-
-    await load();
-
-    setStatus(
-      "globalStatus",
-      "稼働実績を削除しました",
-      "success"
-    );
-
-    show("home");
-  }catch(e){
-    showError(
-      "globalStatus",
-      e
-    );
-  }
+    const r=await db.from("sessions").delete().eq("id",id).eq("user_id",user.id).select("id");
+    check(r);if(r.data.length!==1)throw Error("削除対象が見つかりません");
+    if(editingSession===id)resetSession();
+    await load();setStatus("globalStatus","稼働実績を削除しました","success");show("home");
+  }catch(e){showError("globalStatus",e);}
 }
-
-$("cancelSession").onclick=
-  resetSession;
-
+$("cancelSession").onclick=resetSession;
 $("saveSession").onclick=async()=>{
   if(sessionBusy)return;
-
-  sessionBusy=true;
-
-  const btn=$("saveSession");
-  btn.disabled=true;
-  btn.textContent="保存中…";
-
+  sessionBusy=true;const btn=$("saveSession");btn.disabled=true;
   try{
-    if(!user){
-      throw Error(
-        "ログインしてください"
-      );
-    }
-
-    const st=store(
-      val("sessionRate")
-    );
-
-    const m=machine(
-      val("sessionMachine")
-    );
-
-    if(!st||!m){
-      throw Error(
-        "店舗・貸玉レート・機種を選択してください"
-      );
-    }
-
-    if(!val("playedOn")){
-      throw Error(
-        "稼働日を入力してください"
-      );
-    }
-
-    const cash=
-      nonnegativeNumber("cash");
-
-    const cashBalls=
-      nonnegativeInteger(
-        "cashBalls"
-      );
-
-    const replay=
-      nonnegativeInteger(
-        "replay"
-      );
-
-    const fee=
-      nonnegativeInteger(
-        "replayFee"
-      );
-
-    const held=
-      nonnegativeInteger(
-        "heldBalls"
-      );
-
-    const deposit=
-      nonnegativeInteger(
-        "deposit"
-      );
-
-    const ballsOut=
-      nonnegativeInteger(
-        "ballsOut"
-      );
-
-    const returned=
-      nonnegativeNumber(
-        "returned"
-      );
-
-    const ballsIn=
-      nonnegativeInteger(
-        "ballsIn"
-      );
-
-    const spins=
-      nonnegativeInteger(
-        "spins"
-      );
-
-    if(deposit>ballsOut){
-      throw Error(
-        "貯玉数が総獲得玉数を超えています"
-      );
-    }
-
-    const totalFunding=
-      cashBalls+
-      replay+
-      held;
-
-    if(totalFunding!==ballsIn){
-      throw Error(
-        "現金借玉・再プレイ・持ち玉の合計を、通常回転消費玉数と一致させてください"
-      );
-    }
-
-    const lend=Number(
-      st.play_rate_yen
-    );
-
-    const exchange=Number(
-      st.exchange_rate
-    );
-
-    if(
-      !(lend>0&&exchange>0)
-    ){
-      throw Error(
-        "店舗の貸玉・交換条件が不正です"
-      );
-    }
-
-    if(
-      cash>0&&
-      cashBalls===0
-    ){
-      throw Error(
-        "現金投資がある場合は現金で借りた玉数を入力してください"
-      );
-    }
-
-    if(
-      cash===0&&
-      cashBalls>0
-    ){
-      throw Error(
-        "現金で借りた玉数がある場合は現金投資額を入力してください"
-      );
-    }
-
-    const manualProfit=
-      val("manualProfit")!=="";
-
-    if(
-      manualProfit&&
-      !Number.isFinite(
-        num("manualProfit")
-      )
-    ){
-      throw Error(
-        "実収支の入力値が不正です"
-      );
-    }
-
-    const change=
-      deposit-replay-fee;
-
-    const actual=manualProfit
-      ?num("manualProfit")
-      :returned-
-        cash+
-        change*exchange;
-
-    const evMode=val(
-      "evMode"
-    );
-
-    let ev=null;
-    let evInfo=null;
-    let evBasis="";
-
+    const st=store(val("sessionRate")),m=machine(val("sessionMachine"));
+    if(!st||!m||!val("playedOn"))throw Error("稼働日・店舗・機種を選択してください");
+    const cash=nonnegativeNumber("cash"),cashBalls=nonnegativeInteger("cashBalls"),
+      replay=nonnegativeInteger("replay"),fee=nonnegativeInteger("replayFee"),
+      held=nonnegativeInteger("heldBalls"),deposit=nonnegativeInteger("deposit"),
+      ballsOut=nonnegativeInteger("ballsOut"),returned=nonnegativeNumber("returned"),
+      ballsIn=nonnegativeInteger("ballsIn"),spins=nonnegativeInteger("spins");
+    if(deposit>ballsOut)throw Error("貯玉数が総獲得玉数を超えています");
+    if(cashBalls+replay+held!==ballsIn)throw Error("現金借玉・再プレイ・持ち玉の合計を通常回転消費玉数と一致させてください");
+    if((cash>0&&cashBalls===0)||(cash===0&&cashBalls>0))throw Error("現金投資額と現金借玉数の両方を入力してください");
+    const lend=Number(st.play_rate_yen),exchange=Number(st.exchange_rate);
+    if(!(lend>0&&exchange>0))throw Error("店舗の交換条件が不正です");
+    const manualProfit=val("manualProfit")!=="";
+    if(manualProfit&&!Number.isFinite(num("manualProfit")))throw Error("実収支が不正です");
+    const actual=manualProfit?num("manualProfit"):returned-cash+(deposit-replay-fee)*exchange;
+    const evMode=val("evMode");
+    let ev=null,evInfo=null,evBasis="";
     if(evMode==="model"){
-      evInfo=postEVWithFunding({
-        m,
-        spins,
-        ballsIn,
-        cash,
-        cashBalls,
-        replay,
-        held,
-        fee,
-        exchange
-      });
-
-      if(!evInfo){
-        throw Error(
-          "期待値を計算できません。通常回転数・消費玉数・投資内訳を確認してください。"
-        );
-      }
-
+      evInfo=postEVWithFunding({m,spins,ballsIn,cash,cashBalls,replay,held,fee,exchange});
+      if(!evInfo)throw Error("期待値を計算できません。通常回転数・消費玉数・投資内訳を確認してください。");
       ev=evInfo.ev;
-    }else if(
-      evMode==="manual"
-    ){
-      if(
-        val("manualEv")===""||
-        !Number.isFinite(
-          num("manualEv")
-        )
-      ){
-        throw Error(
-          "手動期待値を入力してください"
-        );
-      }
-
-      if(!val("evBasis")){
-        throw Error(
-          "期待値の計算根拠を入力してください"
-        );
-      }
-
-      ev=num(
-        "manualEv"
-      );
-
-      evBasis=val(
-        "evBasis"
-      );
+    }else if(evMode==="manual"){
+      if(val("manualEv")===""||!Number.isFinite(num("manualEv"))||!val("evBasis"))throw Error("手動期待値と計算根拠を入力してください");
+      ev=num("manualEv");evBasis=val("evBasis");
     }
-
-    const previous=
-      editingSession
-        ?session(
-          editingSession
-        )
-        :null;
-
-    const oldDetails=
-      previous?.details||{};
-
+    const oldDetails=editingSession?session(editingSession)?.details||{}:{};
     const details={
-      ...oldDetails,
-
-      store_id:st.id,
-      store_group_id:
-        st.store_group_id,
-      play_rate_yen:lend,
-      analysis_category:
-        category(st),
-      exchange_rate_yen_per_ball:
-        exchange,
-
-      saved_balls_invested:
-        replay,
-      replay_fee_balls:
-        fee,
-      deposited_balls:
-        deposit,
-      cash_returned_yen:
-        returned,
-
-      cash_purchased_balls:
-        cashBalls,
-      held_balls_used:
-        held,
-      investment_breakdown_version:
-        "v2",
-
-      actual_profit_yen:
-        actual,
-      profit_manually_entered:
-        manualProfit,
-
-      post_ev_mode:
-        evMode,
-      post_ev_yen:
-        ev,
-      post_ev_basis:
-        evBasis,
-      post_ev_model_version:
-        "funding-conditional-v2",
-      post_ev_rotation:
-        evInfo?.rotation??null,
-      post_ev_expected_payout_yen:
-        evInfo?.expectedPayoutYen??null,
-      post_ev_funding_cost_yen:
-        evInfo?.fundingCost??null,
-
-      balance_version:
-        "v1"
+      ...oldDetails,store_id:st.id,store_group_id:st.store_group_id,
+      play_rate_yen:lend,analysis_category:category(st),
+      exchange_rate_yen_per_ball:exchange,saved_balls_invested:replay,
+      replay_fee_balls:fee,deposited_balls:deposit,cash_returned_yen:returned,
+      cash_purchased_balls:cashBalls,held_balls_used:held,
+      investment_breakdown_version:"v2",
+      actual_profit_yen:actual,profit_manually_entered:manualProfit,
+      post_ev_mode:evMode,post_ev_yen:ev,post_ev_basis:evBasis,
+      post_ev_model_version:"funding-conditional-v2",
+      post_ev_rotation:evInfo?.rotation??null,
+      post_ev_expected_payout_yen:evInfo?.expectedPayoutYen??null,
+      post_ev_funding_cost_yen:evInfo?.fundingCost??null,balance_version:"v1"
     };
-
     const payload={
-      machine_id:m.id,
-      played_on:
-        val("playedOn"),
-      store_name:
-        group(
-          st.store_group_id
-        )?.name||st.name,
-      cash_investment_yen:
-        cash,
-      balls_in:
-        ballsIn,
-      balls_out:
-        ballsOut,
-      normal_spins:
-        spins,
-      notes:
-        val("notes"),
-      details
+      machine_id:m.id,played_on:val("playedOn"),
+      store_name:group(st.store_group_id)?.name||st.name,
+      cash_investment_yen:cash,balls_in:ballsIn,balls_out:ballsOut,
+      normal_spins:spins,notes:val("notes"),details
     };
-
     if(editingSession){
-      const result=await db
-        .from("sessions")
-        .update(payload)
-        .eq("id",editingSession)
-        .eq("user_id",user.id)
-        .select("id");
-
-      check(result);
-
-      if(result.data.length!==1){
-        throw Error(
-          "稼働実績の更新対象が見つかりません"
-        );
-      }
-    }else{
-      check(
-        await db
-          .from("sessions")
-          .insert({
-            ...payload,
-            user_id:user.id
-          })
-      );
-    }
-
-    await load();
-    resetSession();
-
-    setStatus(
-      "globalStatus",
-      "稼働実績を保存しました",
-      "success"
-    );
-
-    show("home");
-  }catch(e){
-    showError(
-      "sessionStatus",
-      e
-    );
-  }finally{
-    sessionBusy=false;
-    btn.disabled=false;
-    btn.textContent=
-      "稼働を保存";
-  }
+      const r=await db.from("sessions").update(payload).eq("id",editingSession).eq("user_id",user.id).select("id");
+      check(r);if(r.data.length!==1)throw Error("更新対象が見つかりません");
+    }else check(await db.from("sessions").insert({...payload,user_id:user.id}));
+    await load();resetSession();setStatus("globalStatus","稼働実績を保存しました","success");show("home");
+  }catch(e){showError("sessionStatus",e);}
+  finally{sessionBusy=false;btn.disabled=false;}
 };
 
 /* 集計 */
-
-function filtered(
-  cat,
-  rate="all",
-  funding="all",
-  series="all"
-){
+function filtered(cat,rate="all",funding="all",series="all"){
   return sessions.filter(s=>
-    (
-      cat==="all"||
-      pCategory(s)===cat
-    )&&
-    (
-      rate==="all"||
-      String(pRate(s))===rate
-    )&&
-    (
-      funding==="all"||
-      fundingType(s)===funding
-    )&&
-    (
-      series==="all"||
-      sessionSeries(s)===series
-    )
+    (cat==="all"||pCategory(s)===cat)&&
+    (rate==="all"||String(pRate(s))===rate)&&
+    (funding==="all"||fundingType(s)===funding)&&
+    (series==="all"||sessionSeries(s)===series)
   );
 }
-
 function summarize(list){
-  const profits=list
-    .map(pProfit)
-    .filter(x=>x!==null);
-
-  const evs=list
-    .map(pEV)
-    .filter(x=>x!==null);
-
-  const pairs=list.filter(
-    s=>pSurplus(s)!==null
-  );
-
+  const profits=list.map(pProfit).filter(x=>x!==null);
+  const evs=list.map(pEV).filter(x=>x!==null);
+  const pairs=list.filter(s=>pSurplus(s)!==null);
   return {
-    totalProfit:
-      profits.reduce(
-        (a,b)=>a+b,
-        0
-      ),
-    totalEV:
-      evs.reduce(
-        (a,b)=>a+b,
-        0
-      ),
-    totalSurplus:
-      pairs.reduce(
-        (a,s)=>
-          a+pSurplus(s),
-        0
-      ),
-    profitCount:
-      profits.length,
-    evCount:
-      evs.length,
-    pairCount:
-      pairs.length,
-    count:
-      list.length
+    totalProfit:profits.reduce((a,b)=>a+b,0),
+    totalEV:evs.reduce((a,b)=>a+b,0),
+    totalSurplus:pairs.reduce((a,s)=>a+pSurplus(s),0),
+    profitCount:profits.length,evCount:evs.length,
+    pairCount:pairs.length,count:list.length
   };
 }
-
-function metric(
-  title,
-  value,
-  foot=""
-){
-  return `
-    <div class="metric">
-      <small>
-        ${safe(title)}
-      </small>
-      <strong>
-        ${value}
-      </strong>
-      <div class="muted">
-        ${safe(foot)}
-      </div>
-    </div>
-  `;
+function metric(title,value,foot="",cls=""){
+  return `<div class="metric"><small>${safe(title)}</small><strong class="${cls}">${value}</strong><div class="muted">${safe(foot)}</div></div>`;
 }
-
 function summaryHTML(list){
   const x=summarize(list);
-
-  return `
-    <div class="grid">
-      ${metric(
-        "累計実収支",
-        yen(x.totalProfit),
-        `${x.profitCount}件`
-      )}
-
-      ${metric(
-        "累計期待値",
-        yen(x.totalEV),
-        `${x.evCount}件`
-      )}
-
-      ${metric(
-        "累計欠損・余剰",
-        x.pairCount
-          ?yen(
-            x.totalSurplus
-          )
-          :"—",
-        `${x.pairCount}件`
-      )}
-
-      ${metric(
-        "稼働件数",
-        String(x.count),
-        `期待値未登録 ${
-          x.count-x.evCount
-        }件`
-      )}
-    </div>
-
-    <p class="muted">
-      欠損・余剰は実収支と期待値の
-      両方が登録された稼働のみを集計。
-      未登録を0円として扱いません。
-    </p>
-  `;
+  return `<div class="grid">
+    ${metric("累計実収支",yen(x.totalProfit),`${x.profitCount}件`,moneyClass(x.totalProfit))}
+    ${metric("累計期待値",yen(x.totalEV),`${x.evCount}件`,moneyClass(x.totalEV))}
+    ${metric("累計欠損・余剰",x.pairCount?yen(x.totalSurplus):"—",`${x.pairCount}件`,x.pairCount?moneyClass(x.totalSurplus):"")}
+    ${metric("稼働件数",String(x.count),`期待値未登録 ${x.count-x.evCount}件`)}
+    </div><p class="muted">欠損・余剰は実収支と期待値が両方登録された稼働のみ集計します。</p>`;
 }
-
 function renderHome(){
-  const list=filtered(
-    val("homeCategory")
-  );
-
-  $("homeSummary").innerHTML=
-    summaryHTML(list);
-
-  $("history").innerHTML=
-    list.map(s=>`
-      <div class="item">
-        <b>
-          ${safe(s.played_on)}
-          ${safe(
-            machine(
-              s.machine_id
-            )?.name||
-            "機種不明"
-          )}
-        </b>
-
-        <p class="muted">
-          <span class="pill">
-            ${safe(
-              sessionSeries(s)
-            )}
-          </span>
-          <br>
-          ${safe(
-            s.store_name||""
-          )}／
-          ${pRate(s)||"未分類"}円
-          <br>
-          投資方法：
-          ${fundingLabel(s)}
-          <br>
-          実収支：
-          ${yen(pProfit(s))}
-          <br>
-          稼働後期待値：
-          ${yen(pEV(s))}
-          <br>
-          欠損・余剰：
-          ${yen(pSurplus(s))}
-        </p>
-
-        <div class="actions">
-          <button
-            class="secondary"
-            data-edit-session="${safe(s.id)}">
-            編集
-          </button>
-
-          <button
-            class="danger"
-            data-delete-session="${safe(s.id)}">
-            削除
-          </button>
-        </div>
-      </div>
-    `).join("")||
-    "稼働記録がありません";
+  const list=filtered(val("homeCategory"));
+  $("homeSummary").innerHTML=summaryHTML(list);
+  $("history").innerHTML=list.map(s=>`<div class="item">
+    <span class="pill">${safe(sessionSeries(s))}</span>
+    <p><b>${safe(formatDateJP(s.played_on))}<br>${safe(machine(s.machine_id)?.name||"機種不明")}</b></p>
+    <p class="muted">${safe(s.store_name||"")}／${pRate(s)||"未分類"}円<br>投資方法：${fundingLabel(s)}</p>
+    <div class="grid">
+      ${metric("実収支",yen(pProfit(s)),"",moneyClass(pProfit(s)))}
+      ${metric("期待値",yen(pEV(s)),"",moneyClass(pEV(s)))}
+      ${metric("欠損・余剰",yen(pSurplus(s)),"",moneyClass(pSurplus(s)))}
+    </div>
+    <div class="actions"><button class="secondary" data-edit-session="${safe(s.id)}">編集</button><button class="danger" data-delete-session="${safe(s.id)}">削除</button></div>
+    </div>`).join("")||'<p class="muted">稼働記録がありません。</p>';
 }
-
-$("history")
-  .addEventListener("click",e=>{
-    const edit=e.target.closest(
-      "[data-edit-session]"
-    );
-
-    const del=e.target.closest(
-      "[data-delete-session]"
-    );
-
-    if(edit){
-      editSession(
-        edit.dataset.editSession
-      );
-    }
-
-    if(del){
-      deleteSession(
-        del.dataset.deleteSession
-      );
-    }
-  });
-
-function grouped(
-  list,
-  key
-){
+$("history").onclick=e=>{
+  const a=e.target.closest("[data-edit-session]"),b=e.target.closest("[data-delete-session]");
+  if(a)editSession(a.dataset.editSession);
+  if(b)deleteSession(b.dataset.deleteSession);
+};
+function grouped(list,key){
   const map=new Map();
-
   for(const s of list){
-    const k=String(
-      key(s)||"未設定"
-    );
-
-    if(!map.has(k)){
-      map.set(k,[]);
-    }
-
+    const k=String(key(s)||"未設定");
+    if(!map.has(k))map.set(k,[]);
     map.get(k).push(s);
   }
-
-  return [...map]
-    .sort((a,b)=>
-      a[0].localeCompare(
-        b[0],
-        "ja",
-        {numeric:true}
-      )
-    )
-    .map(([name,items])=>{
-      const x=summarize(items);
-
-      return `
-        <div class="item">
-          <b>${safe(name)}</b>
-
-          <p class="muted">
-            実収支：
-            ${yen(
-              x.totalProfit
-            )}
-            <br>
-            期待値：
-            ${yen(
-              x.totalEV
-            )}
-            <br>
-            欠損・余剰：
-            ${
-              x.pairCount
-                ?yen(
-                  x.totalSurplus
-                )
-                :"—"
-            }
-            <br>
-            対象：
-            ${
-              x.pairCount
-            }/${
-              x.count
-            }件
-          </p>
-        </div>
-      `;
-    }).join("")||
-    "データがありません";
+  return [...map].sort((a,b)=>a[0].localeCompare(b[0],"ja",{numeric:true})).map(([name,items])=>{
+    const x=summarize(items);
+    return `<div class="item"><b>${safe(name)}</b><p class="muted">
+      実収支：${yen(x.totalProfit)}<br>期待値：${yen(x.totalEV)}<br>
+      欠損・余剰：${x.pairCount?yen(x.totalSurplus):"—"}<br>対象：${x.pairCount}/${x.count}件
+      </p></div>`;
+  }).join("")||'<p class="muted">データがありません。</p>';
 }
-
 function renderCurve(list){
-  const ordered=[...list]
-    .sort((a,b)=>
-      String(
-        a.played_on
-      ).localeCompare(
-        String(
-          b.played_on
-        )
-      )
-    );
-
-  let running=0;
-
-  const points=[];
-
+  const ordered=[...list].sort((a,b)=>String(a.played_on).localeCompare(String(b.played_on)));
+  let running=0;const points=[];
   for(const s of ordered){
-    const v=pSurplus(s);
-
-    if(v===null){
-      continue;
-    }
-
-    running+=v;
-
-    points.push({
-      date:s.played_on,
-      value:running
-    });
+    const v=pSurplus(s);if(v===null)continue;
+    running+=v;points.push({date:s.played_on,value:running});
   }
-
   if(!points.length){
-    $("statsCurve").innerHTML=
-      '<p class="muted">集計できる稼働がありません。</p>';
-
-    return;
+    $("statsCurve").innerHTML='<p class="muted">集計できる稼働がありません。</p>';return;
   }
-
-  const values=points.map(
-    p=>p.value
-  );
-
-  const minimum=Math.min(
-    0,
-    ...values
-  );
-
-  const maximum=Math.max(
-    0,
-    ...values
-  );
-
-  const span=Math.max(
-    1,
-    maximum-minimum
-  );
-
-  const width=600;
-  const height=200;
-  const pad=28;
-
-  const x=i=>
-    pad+
-    (width-2*pad)*
-    (
-      points.length===1
-        ?0.5
-        :i/(points.length-1)
-    );
-
-  const y=v=>
-    height-pad-
-    (v-minimum)/
-    span*
-    (height-2*pad);
-
-  const path=points
-    .map((p,i)=>
-      `${
-        i===0?"M":"L"
-      } ${
-        x(i)
-      } ${
-        y(p.value)
-      }`
-    )
-    .join(" ");
-
-  $("statsCurve").innerHTML=`
-    <svg
-      class="chart"
-      viewBox="0 0 ${width} ${height}">
-
-      <line
-        x1="${pad}"
-        y1="${y(0)}"
-        x2="${width-pad}"
-        y2="${y(0)}"
-        stroke="#8290a3"
-        stroke-dasharray="5 5"/>
-
-      <path
-        d="${path}"
-        fill="none"
-        stroke="#7bb2ff"
-        stroke-width="3"/>
-
-      ${points.map((p,i)=>`
-        <circle
-          cx="${x(i)}"
-          cy="${y(p.value)}"
-          r="3"
-          fill="#b3d2ff"/>
-      `).join("")}
-    </svg>
-
-    <p class="muted">
-      開始：
-      ${safe(
-        points[0].date
-      )}
-      <br>
-      最終：
-      ${safe(
-        points.at(-1).date
-      )}
-      <br>
-      累積：
-      ${yen(running)}
-      <br>
-      対象：
-      ${points.length}件
-    </p>
-  `;
+  const values=points.map(p=>p.value),minimum=Math.min(0,...values),maximum=Math.max(0,...values),span=Math.max(1,maximum-minimum);
+  const width=600,height=200,pad=28;
+  const x=i=>pad+(width-2*pad)*(points.length===1?.5:i/(points.length-1));
+  const y=v=>height-pad-(v-minimum)/span*(height-2*pad);
+  const path=points.map((p,i)=>`${i===0?"M":"L"} ${x(i)} ${y(p.value)}`).join(" ");
+  $("statsCurve").innerHTML=`<svg class="chart" viewBox="0 0 ${width} ${height}">
+    <line x1="${pad}" y1="${y(0)}" x2="${width-pad}" y2="${y(0)}" stroke="#9bb5c9" stroke-dasharray="5 5"/>
+    <path d="${path}" fill="none" stroke="#65a8d7" stroke-width="3"/>
+    ${points.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.value)}" r="3" fill="#65a8d7"/>`).join("")}
+    </svg><p class="muted">開始：${formatDateJP(points[0].date)}<br>最終：${formatDateJP(points.at(-1).date)}<br>累積：${yen(running)}<br>対象：${points.length}件</p>`;
 }
-
 function renderStats(){
-  const list=filtered(
-    val("statsCategory"),
-    val("statsRate"),
-    val("statsFunding"),
-    val("statsSeries")
-  );
-
-  $("statsSummary").innerHTML=
-    summaryHTML(list);
-
+  const list=filtered(val("statsCategory"),val("statsRate"),val("statsFunding"),val("statsSeries"));
+  $("statsSummary").innerHTML=summaryHTML(list);
   renderCurve(list);
-
-  $("statsMonths").innerHTML=
-    grouped(
-      list,
-      s=>String(
-        s.played_on||""
-      ).slice(0,7)
-    );
-
-  $("statsStores").innerHTML=
-    grouped(
-      list,
-      s=>
-        s.store_name||
-        "不明"
-    );
-
-  $("statsSeriesGroups").innerHTML=
-    grouped(
-      list,
-      sessionSeries
-    );
-
-  $("statsMachines").innerHTML=
-    grouped(
-      list,
-      s=>
-        machine(
-          s.machine_id
-        )?.name||
-        "機種不明"
-    );
-
-  $("statsFundingGroups").innerHTML=
-    grouped(
-      list,
-      fundingLabel
-    );
+  $("statsMonths").innerHTML=grouped(list,s=>String(s.played_on||"").slice(0,7));
+  $("statsStores").innerHTML=grouped(list,s=>s.store_name||"不明");
+  $("statsSeriesGroups").innerHTML=grouped(list,sessionSeries);
+  $("statsMachines").innerHTML=grouped(list,s=>machine(s.machine_id)?.name||"機種不明");
+  $("statsFundingGroups").innerHTML=grouped(list,fundingLabel);
 }
-
-$("homeCategory").onchange=
-  renderHome;
-
-$("statsCategory").onchange=
-  renderStats;
-
-$("statsRate").onchange=
-  renderStats;
-
-$("statsSeries").onchange=
-  renderStats;
-
-$("statsFunding").onchange=
-  renderStats;
-
+["homeCategory","statsCategory","statsRate","statsSeries","statsFunding"].forEach(id=>$(id).onchange=id==="homeCategory"?renderHome:renderStats);
 function render(){
-  renderStores();
-
-  renderSelectors();
-
-  renderMachines();
-
-  renderHome();
-
-  const rates=[
-    ...new Set(
-      stores.map(s=>
-        Number(
-          s.play_rate_yen
-        )
-      ).filter(x=>x>0)
-    )
-  ].sort((a,b)=>b-a);
-
-  const old=val(
-    "statsRate"
-  );
-
-  $("statsRate").innerHTML=
-    '<option value="all">すべて</option>'+
-    rates.map(r=>`
-      <option value="${r}">
-        ${r}円
-      </option>
-    `).join("");
-
-  if(
-    rates.some(r=>
-      String(r)===old
-    )
-  ){
-    $("statsRate").value=old;
-  }
-
+  renderStores();renderSelectors();renderMachines();renderHome();
+  const rates=[...new Set(stores.map(s=>Number(s.play_rate_yen)).filter(x=>x>0))].sort((a,b)=>b-a);
+  const old=val("statsRate");
+  $("statsRate").innerHTML='<option value="all">すべて</option>'+rates.map(r=>`<option value="${r}">${r}円</option>`).join("");
+  if(rates.some(r=>String(r)===old))$("statsRate").value=old;
   renderStats();
 }
 
 /* 認証 */
-
 async function start(){
   try{
-    const {
-      data,
-      error
-    }=await db.auth.getUser();
-
-    if(error){
-      throw error;
-    }
-
+    const {data,error}=await db.auth.getUser();
+    if(error)throw error;
     user=data.user;
-
-    $("auth")
-      .classList.toggle(
-        "hidden",
-        !!user
-      );
-
-    $("app")
-      .classList.toggle(
-        "hidden",
-        !user
-      );
-
-    if(user){
-      $("account").textContent=
-        user.email||"";
-
-      await load();
-    }else{
-      groups=[];
-      stores=[];
-      machines=[];
-      sessions=[];
-    }
-  }catch(e){
-    showError(
-      "globalStatus",
-      e
-    );
-  }
+    $("auth").classList.toggle("hidden",!!user);
+    $("app").classList.toggle("hidden",!user);
+    if(user){$("account").textContent=user.email||"";await load();}
+    else{groups=[];stores=[];machines=[];sessions=[];}
+  }catch(e){showError("globalStatus",e);}
 }
-
 $("login").onclick=async()=>{
   try{
-    check(
-      await db.auth
-        .signInWithPassword({
-          email:val("email"),
-          password:val("password")
-        })
-    );
-
+    check(await db.auth.signInWithPassword({email:val("email"),password:val("password")}));
     await start();
-  }catch(e){
-    showError(
-      "globalStatus",
-      e
-    );
-  }
+  }catch(e){showError("globalStatus",e);}
 };
-
 $("signup").onclick=async()=>{
   try{
-    check(
-      await db.auth.signUp({
-        email:val("email"),
-        password:val("password")
-      })
-    );
-
-    setStatus(
-      "globalStatus",
-      "登録メールを確認してください",
-      "success"
-    );
-  }catch(e){
-    showError(
-      "globalStatus",
-      e
-    );
-  }
+    check(await db.auth.signUp({email:val("email"),password:val("password")}));
+    setStatus("globalStatus","登録メールを確認してください","success");
+  }catch(e){showError("globalStatus",e);}
 };
-
 $("logout").onclick=async()=>{
-  try{
-    check(
-      await db.auth.signOut()
-    );
-
-    await start();
-  }catch(e){
-    showError(
-      "globalStatus",
-      e
-    );
-  }
+  try{check(await db.auth.signOut());await start();}
+  catch(e){showError("globalStatus",e);}
 };
-
-/* バックアップ */
-
 $("backup").onclick=()=>{
-  const blob=new Blob([
-    JSON.stringify({
-      machines,
-      groups,
-      stores,
-      sessions
-    },null,2)
-  ],{
-    type:"application/json"
-  });
-
-  const url=
-    URL.createObjectURL(
-      blob
-    );
-
-  const a=
-    document.createElement(
-      "a"
-    );
-
-  a.href=url;
-  a.download=
-    "pachinko-backup.json";
-
-  a.click();
-
-  setTimeout(
-    ()=>URL.revokeObjectURL(
-      url
-    ),
-    1000
-  );
+  const blob=new Blob([JSON.stringify({machines,groups,stores,sessions},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="pachinko-backup.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 
 /* 初期化 */
-
 $("playedOn").value=today();
-
+updateDateDisplay();
 resetMachine();
 resetStore();
 resetSession();
 toggleBeforeFunding();
-
 show("home");
 start();
-
 </script>
 </body>
 </html>
