@@ -414,10 +414,9 @@ svg{max-width:100%}
   <div class="card">
     <h2>個人データを共有へ移行</h2>
     <p class="muted">
-      現在の個人データのうち、店舗・機種・稼働履歴を
-      選択したグループへ移行します。
-      移行後はグループの全メンバーが詳細を閲覧できます。
-      元のレコードIDは維持されます。
+      店舗・機種・稼働履歴をグループへ移行します。
+      全メンバーが稼働詳細を閲覧できます。
+      移行前にバックアップしてください。
     </p>
     <label>移行先グループ</label>
     <select id="migrationGroup"></select>
@@ -737,8 +736,7 @@ $("beforeSeries").onchange=()=>
   machineOptions("beforeSeries","beforeMachine");
 
 $("machineFilter").onchange=renderMachines;
-$("sessionMachine").onchange=previewEV;
-async function load(){
+$("sessionMachine").onchange=previewEV;async function load(){
   if(!user)return;
 
   const [g,m,sg,st,ma,se]=await Promise.all([
@@ -1284,112 +1282,129 @@ function rng(seed){
   };
 }
 
-function simulateBefore(rotation,p,runs=1500){
-  const random=rng(20261101);
-  let totalEV=0;
-  let totalSpins=0;
-  let totalHits=0;
-  let stopped=0;
-  const cap=p.mode==="cash"
-    ?0:Math.min(p.available,p.limit??Infinity);
+function simulate(rotation,p,trials=400){
+  const random=rng(0xA73B9F11);
+  const costSpin=250/rotation;
+  const probability=Math.min(1,1/p.p);
 
-  for(let run=0;run<runs;run++){
+  const limit=p.mode==="cash"
+    ?0
+    :Math.max(0,Math.min(
+      p.available,
+      p.limit??Infinity
+    ));
+
+  let sum=0;
+  let stops=0;
+  let spinsTotal=0;
+  let hitsTotal=0;
+  let replayTotal=0;
+  let cashTotal=0;
+
+  for(let t=0;t<trials;t++){
+    let held=p.held;
+    let replayRemaining=limit;
+    let replayUsed=0;
+    let cashSpent=0;
     let time=0;
     let spins=0;
     let hits=0;
-    let replay=cap;
-    let held=p.held;
-    let cashCost=0;
-    let replayUsed=0;
-    let earned=0;
-    const perSpin=250/rotation;
+    let stopped=false;
+    let feePaid=false;
 
-    while(time<p.hours){
-      if(time+1/p.speed>p.hours)break;
+    while(
+      time+1/p.speed<=p.hours &&
+      spins<15000
+    ){
+      const heldBefore=held;
+      const replayBefore=replayRemaining;
+      const usedBefore=replayUsed;
+      const feeBefore=feePaid;
 
-      if(held>=perSpin){
-        held-=perSpin;
-      }else{
-        let need=perSpin-held;
-        held=0;
-        if(replay>=need){
-          replay-=need;
-          replayUsed+=need;
-        }else{
-          replayUsed+=replay;
-          need-=replay;
-          replay=0;
-          if(p.mode==="replay"){
-            stopped++;
-            break;
-          }
-          cashCost+=need*p.lend;
+      let need=costSpin;
+
+      const fromHeld=Math.min(held,need);
+      held-=fromHeld;
+      need-=fromHeld;
+
+      if(need>1e-9&&replayRemaining>0){
+        if(!feePaid&&p.fee>0){
+          const charged=Math.min(
+            p.fee,replayRemaining
+          );
+          replayRemaining-=charged;
+          replayUsed+=charged;
+          feePaid=true;
         }
+
+        const used=Math.min(
+          need,replayRemaining
+        );
+        replayRemaining-=used;
+        replayUsed+=used;
+        need-=used;
+      }
+
+      if(need>1e-9){
+        if(p.mode==="replay"){
+          // 1回転分に満たなければ消費を戻して終了
+          held=heldBefore;
+          replayRemaining=replayBefore;
+          replayUsed=usedBefore;
+          feePaid=feeBefore;
+          stopped=true;
+          break;
+        }
+
+        cashSpent+=need*p.lend;
       }
 
       spins++;
       time+=1/p.speed;
 
-      if(random()<1/p.p){
+      if(random()<probability){
         hits++;
         held+=p.ty;
-        earned+=p.ty;
         time+=p.hitMin/60;
       }
     }
 
-    const used=cap-replay;
-    const fee=used>0?p.fee*p.q:0;
-    const profit=(held-p.held)*p.q+
-      cashCost===Infinity?0:0;
+    const net=
+      (held-p.held-replayUsed)*p.q-
+      cashSpent;
 
-    const net=earned*p.q-
-      cashCost-
-      used*p.q-
-      fee-
-      p.held*p.q+
-      held*p.q-
-      earned*p.q;
-
-    totalEV+=net;
-    totalSpins+=spins;
-    totalHits+=hits;
+    sum+=net;
+    if(stopped)stops++;
+    spinsTotal+=spins;
+    hitsTotal+=hits;
+    replayTotal+=replayUsed;
+    cashTotal+=cashSpent;
   }
 
   return {
-    ev:totalEV/runs,
-    spins:totalSpins/runs,
-    hits:totalHits/runs,
-    stopped:stopped/runs
+    ev:sum/trials,
+    stopRate:stops/trials,
+    spins:spinsTotal/trials,
+    hits:hitsTotal/trials,
+    replay:replayTotal/trials,
+    cash:cashTotal/trials
   };
 }
 
-function requiredRotation(target,p){
-  let lo=0.1;
-  let hi=250;
-  const max=simulateBefore(hi,p);
-  if(max.ev<target)return null;
+async function calculateBefore(){
+  const button=$("calculateBefore");
+  button.disabled=true;
 
-  for(let i=0;i<25;i++){
-    const mid=(lo+hi)/2;
-    const x=simulateBefore(mid,p);
-    if(x.ev>=target)hi=mid;
-    else lo=mid;
-  }
-  return hi;
-}
+  $("beforeResult").innerHTML=
+    '<p class="muted">シミュレーション計算中…</p>';
 
-$("beforeFunding").onchange=()=>{
-  $("beforeReplayWrap").classList.toggle(
-    "hidden",V("beforeFunding")==="cash"
-  );
-};
+  await new Promise(r=>setTimeout(r,30));
 
-$("calculateBefore").onclick=()=>{
   try{
     const st=store(V("beforeRate"));
     const m=machine(V("beforeMachine"));
     const sp=specs(m);
+
     if(!st||!sp){
       throw Error("店舗と機種を選択してください");
     }
@@ -1398,116 +1413,214 @@ $("calculateBefore").onclick=()=>{
     const speed=positive("beforeSpeed");
     const hitMin=nonnegative("beforeHitMinutes");
     const target=Number(V("beforeTarget"));
+    const mode=V("beforeFunding");
+
+    const available=mode==="cash"
+      ?0
+      :nonnegative("beforeReplayAvailable",true);
+
     const held=nonnegative("beforeHeld",true);
 
     if(!Number.isFinite(target)){
       throw Error("目標期待値が不正です");
     }
 
-    const mode=V("beforeFunding");
-    const available=mode==="cash"
-      ?0:nonnegative("beforeReplayAvailable",true);
-
     const p={
       hours,speed,hitMin,
-      p:sp.p,ty:sp.ty,
+      p:sp.p,
+      ty:sp.ty,
+      mode,available,held,
       q:Number(st.exchange_rate),
       lend:Number(st.play_rate_yen),
-      mode,available,held,
       fee:Number(st.replay_fee_balls||0),
       limit:st.replay_limit_balls==null
-        ?null:Number(st.replay_limit_balls)
+        ?null
+        :Number(st.replay_limit_balls)
     };
 
     if(!(p.q>0&&p.lend>0)){
-      throw Error("店舗の交換条件を確認してください");
+      throw Error("店舗の交換単価を確認してください");
     }
 
-    const r=requiredRotation(target,p);
-    const targets=[...new Set([
-      0,3000,5000,10000,20000,target
-    ])].sort((a,b)=>a-b);
+    const targets=[
+      ...new Set([0,3000,5000,10000,20000,target])
+    ].sort((a,b)=>a-b);
 
-    const result=r==null?null:simulateBefore(r,p);
+    const cache=new Map();
+
+    const evAt=r=>{
+      const k=r.toFixed(6);
+      if(!cache.has(k)){
+        cache.set(k,simulate(r,p));
+      }
+      return cache.get(k);
+    };
+
+    function solve(t){
+      let prev=0.25;
+
+      for(let r=5;r<=250;r+=5){
+        const x=evAt(r);
+
+        if(x.ev>=t){
+          let lo=prev;
+          let hi=r;
+
+          for(let j=0;j<13;j++){
+            const mid=(lo+hi)/2;
+
+            if(evAt(mid).ev>=t){
+              hi=mid;
+            }else{
+              lo=mid;
+            }
+          }
+
+          return {
+            r:hi,
+            ...evAt(hi)
+          };
+        }
+
+        prev=r;
+      }
+
+      return null;
+    }
+
+    const rows=targets.map(t=>({
+      target:t,
+      result:solve(t)
+    }));
+
+    const main=rows.find(
+      x=>x.target===target
+    )?.result;
 
     $("beforeResult").innerHTML=`
-      <h3>必要回転率（簡易シミュレーション）</h3>
+      <h3>必要回転率（推定）</h3>
       <div class="number">
-        ${r==null?"算出不可":r.toFixed(2)+"回/250玉"}
+        ${main
+          ?main.r.toFixed(2)+"回/250玉"
+          :"算出不可"}
       </div>
       <p class="muted">
-        理論等価ボーダー：
+        等価理論ボーダー：
         ${(250*sp.p/sp.ty).toFixed(2)}回/250玉<br>
         想定通常回転：
-        ${result?result.spins.toFixed(1):"—"}回<br>
+        ${main?main.spins.toFixed(1):"—"}回<br>
         想定初当たり：
-        ${result?result.hits.toFixed(2):"—"}回<br>
-        玉切れ終了率：
-        ${result?(result.stopped*100).toFixed(1):"—"}%
+        ${main?main.hits.toFixed(2):"—"}回<br>
+        計算上限：250回/250玉
       </p>
       <table>
         <thead>
           <tr>
             <th>目標期待値</th>
             <th>必要回転率</th>
+            <th>途中終了率</th>
           </tr>
         </thead>
         <tbody>
-          ${targets.map(t=>{
-            const x=requiredRotation(t,p);
-            return `<tr>
-              <td>${Y(t)}</td>
-              <td>${x==null?"算出不可":x.toFixed(2)+"回"}</td>
-            </tr>`;
-          }).join("")}
+          ${rows.map(x=>`
+            <tr>
+              <td>${Y(x.target)}</td>
+              <td>
+                ${x.result
+                  ?x.result.r.toFixed(2)+"回"
+                  :"算出不可"}
+              </td>
+              <td>
+                ${x.result
+                  ?(100*x.result.stopRate).toFixed(1)+"%"
+                  :"—"}
+              </td>
+            </tr>
+          `).join("")}
         </tbody>
       </table>
       <div class="notice">
-        初当たり確率と持ち玉による続行を考慮した
-        簡易シミュレーションです。
-        平均TYを一括獲得として扱っています。
-        実際の出玉推移・電サポ中の増減・
-        遊技時間のばらつきは再現していません。
+        400試行の簡易モンテカルロ推定。
+        再プレイ上限は貸し出し玉数の上限であり、
+        大当たり後の持ち玉は上限と無関係に使用できます。
+
+        再プレイ残高と持ち玉が1回転分に満たない場合、
+        現金投資なしではその回転を行わず終了します。
+
+        TYを毎回固定の一括獲得玉数とする近似で、
+        RUSH・連チャン・出玉分布を再現しません。
+
+        推定誤差により回転率が厳密に単調と
+        ならないことがあります。
+
+        「算出不可」は探索上限までの条件では
+        目標を達成しなかったことを意味します。
       </div>`;
   }catch(e){
     $("beforeResult").innerHTML=
       `<p class="error">${E(e.message)}</p>`;
+  }finally{
+    button.disabled=false;
   }
+}
+
+$("beforeFunding").onchange=()=>{
+  $("beforeReplayWrap").classList.toggle(
+    "hidden",
+    V("beforeFunding")==="cash"
+  );
 };
+
+$("calculateBefore").onclick=calculateBefore;
 
 /* 稼働記録 */
 function previewInvestment(){
-  const sum=N("cashBalls")+N("replay")+N("heldBalls");
+  const sum=
+    N("cashBalls")+
+    N("replay")+
+    N("heldBalls");
+
   const diff=N("ballsIn")-sum;
+
   const opening=N("openingHeld");
   const earned=N("earnedBalls");
   const ending=N("endingHeld");
-  const balance=opening+earned-
-    N("heldBalls")-ending;
+
+  const balance=
+    opening+earned-
+    N("heldBalls")-
+    ending;
 
   $("investmentPreview").textContent=
     `投資内訳：${sum.toLocaleString()}玉\n`+
     `通常回転消費：${N("ballsIn").toLocaleString()}玉\n`+
     `差分：${diff.toLocaleString()}玉\n`+
     `持ち玉残高差：${balance.toLocaleString()}玉\n`+
-    (diff===0?"投資内訳一致":"投資内訳が一致していません");
+    (diff===0
+      ?"投資内訳一致"
+      :"投資内訳が一致していません");
 }
 
 function previewEV(){
   const mode=V("evMode");
+
   $("manualEvWrap").classList.toggle(
-    "hidden",mode!=="manual"
+    "hidden",
+    mode!=="manual"
   );
+
   if(mode==="none"){
     $("evPreview").textContent="期待値は未登録です";
     return;
   }
+
   if(mode==="manual"){
     $("evPreview").textContent="手動期待値を保存します";
     return;
   }
 
   const st=store(V("sessionRate"));
+
   const x=postEV({
     m:machine(V("sessionMachine")),
     spins:N("spins"),
@@ -1615,9 +1728,12 @@ function editSession(id){
 
   $("manualProfit").value=d.profit_manually_entered
     ?d.actual_profit_yen??"":"";
+
   $("evMode").value=d.post_ev_mode||"none";
+
   $("manualEv").value=d.post_ev_mode==="manual"
     ?d.post_ev_yen??"":"";
+
   $("evBasis").value=d.post_ev_basis||"";
   $("notes").value=s.notes||"";
 
@@ -1631,6 +1747,7 @@ function editSession(id){
 async function deleteSession(id){
   const s=session(id);
   if(!s||s.user_id!==user.id)return;
+
   if(!confirm(`${dateJP(s.played_on)}の稼働を削除しますか？`)){
     return;
   }
@@ -1641,13 +1758,20 @@ async function deleteSession(id){
       .eq("id",id)
       .eq("user_id",user.id)
       .select("id");
+
     if(check(r).length!==1){
       throw Error("削除できませんでした");
     }
+
     if(editSessionId===id)resetSession();
     await load();
     show("home");
-    status("globalStatus","稼働を削除しました","success");
+
+    status(
+      "globalStatus",
+      "稼働を削除しました",
+      "success"
+    );
   }catch(e){
     err("globalStatus",e);
   }
@@ -1687,27 +1811,40 @@ $("saveSession").onclick=async()=>{
     const spins=nonnegative("spins",true);
 
     if(cashBalls+replay+held!==ballsIn){
-      throw Error("投資内訳と通常回転消費玉数が一致しません");
+      throw Error(
+        "投資内訳と通常回転消費玉数が一致しません"
+      );
     }
 
-    if((cash>0&&cashBalls===0)||(cash===0&&cashBalls>0)){
-      throw Error("現金投資と現金借玉数を確認してください");
+    if(
+      (cash>0&&cashBalls===0)||
+      (cash===0&&cashBalls>0)
+    ){
+      throw Error(
+        "現金投資と現金借玉数を確認してください"
+      );
     }
 
     if(held>opening+earned){
-      throw Error("使用持ち玉が保有玉数を超えています");
+      throw Error(
+        "使用持ち玉が保有玉数を超えています"
+      );
     }
 
     if(deposit>ending){
-      throw Error("貯玉数が終了時残玉を超えています");
+      throw Error(
+        "貯玉数が終了時残玉を超えています"
+      );
     }
 
     const q=Number(st.exchange_rate);
+
     if(!(q>0)){
       throw Error("交換単価が不正です");
     }
 
     const manually=V("manualProfit")!=="";
+
     const actual=manually
       ?Number(V("manualProfit"))
       :returned-cash+(deposit-replay-fee)*q;
@@ -1717,12 +1854,15 @@ $("saveSession").onclick=async()=>{
     }
 
     const mode=V("evMode");
-    let ev=null,info=null,basis="";
+    let ev=null;
+    let info=null;
+    let basis="";
 
     if(mode==="model"){
       info=postEV({
         m,spins,ballsIn,cash,replay,held,fee,q
       });
+
       if(!info){
         throw Error("期待値を計算できません");
       }
@@ -1733,7 +1873,9 @@ $("saveSession").onclick=async()=>{
         !Number.isFinite(N("manualEv"))||
         !V("evBasis")
       ){
-        throw Error("手動期待値と根拠を入力してください");
+        throw Error(
+          "手動期待値と根拠を入力してください"
+        );
       }
       ev=N("manualEv");
       basis=V("evBasis");
@@ -1768,15 +1910,18 @@ $("saveSession").onclick=async()=>{
       post_ev_basis:basis,
       post_ev_model_version:"held-balls-v3",
       post_ev_rotation:info?.rotation??null,
-      post_ev_expected_payout_yen:info?.payout*q??null,
-      post_ev_funding_cost_yen:info?.cost??null,
+      post_ev_expected_payout_yen:
+        info?.payout*q??null,
+      post_ev_funding_cost_yen:
+        info?.cost??null,
       balance_version:"v2"
     };
 
     const payload={
       machine_id:m.id,
       played_on:V("playedOn"),
-      store_name:storeGroup(st.store_group_id)?.name||st.name,
+      store_name:
+        storeGroup(st.store_group_id)?.name||st.name,
       cash_investment_yen:cash,
       balls_in:ballsIn,
       balls_out:ballsOut,
@@ -1787,14 +1932,17 @@ $("saveSession").onclick=async()=>{
 
     if(editSessionId){
       const existing=session(editSessionId);
+
       if(existing.user_id!==user.id){
         throw Error("本人以外は編集できません");
       }
+
       const r=await db.from("sessions")
         .update(payload)
         .eq("id",editSessionId)
         .eq("user_id",user.id)
         .select("id");
+
       if(check(r).length!==1){
         throw Error("更新できませんでした");
       }
@@ -1809,7 +1957,12 @@ $("saveSession").onclick=async()=>{
     await load();
     resetSession();
     show("home");
-    status("globalStatus","稼働を保存しました","success");
+
+    status(
+      "globalStatus",
+      "稼働を保存しました",
+      "success"
+    );
   }catch(e){
     err("sessionStatus",e);
   }finally{
@@ -1819,7 +1972,10 @@ $("saveSession").onclick=async()=>{
 
 /* 集計 */
 function selectedSessions(
-  member="all",cat="all",ser="all",fund="all"
+  member="all",
+  cat="all",
+  ser="all",
+  fund="all"
 ){
   return visibleSessions().filter(s=>
     (member==="all"||s.user_id===member)&&
@@ -1837,7 +1993,9 @@ function summarize(list){
   return {
     profit:profits.reduce((a,b)=>a+b,0),
     ev:evs.reduce((a,b)=>a+b,0),
-    surplus:pairs.reduce((a,s)=>a+pSurplus(s),0),
+    surplus:pairs.reduce(
+      (a,s)=>a+pSurplus(s),0
+    ),
     pairs:pairs.length,
     evCount:evs.length,
     count:list.length
@@ -1854,41 +2012,70 @@ function metric(name,value,foot="",cls=""){
 
 function summaryHTML(list){
   const s=summarize(list);
+
   return `<div class="grid">
-    ${metric("累計実収支",Y(s.profit),"",F(s.profit))}
-    ${metric("累計期待値",Y(s.ev),s.evCount+"件",F(s.ev))}
-    ${metric("累計欠損余剰",
+    ${metric(
+      "累計実収支",
+      Y(s.profit),"",F(s.profit)
+    )}
+    ${metric(
+      "累計期待値",
+      Y(s.ev),s.evCount+"件",F(s.ev)
+    )}
+    ${metric(
+      "累計欠損余剰",
       s.pairs?Y(s.surplus):"—",
-      s.pairs+"件",s.pairs?F(s.surplus):"")}
-    ${metric("稼働件数",String(s.count))}
+      s.pairs+"件",
+      s.pairs?F(s.surplus):""
+    )}
+    ${metric(
+      "稼働件数",
+      String(s.count)
+    )}
   </div>
   <p class="muted">
-    欠損余剰は、実収支と期待値の両方がある稼働のみ集計。
+    欠損余剰は、実収支と期待値の
+    両方がある稼働のみ集計。
   </p>`;
 }
 
 function memberOptions(id){
-  const ids=[...new Set(
-    visibleSessions().map(s=>s.user_id)
-  )];
-  if(!ids.includes(user.id))ids.unshift(user.id);
+  const ids=[
+    ...new Set(visibleSessions().map(s=>s.user_id))
+  ];
+
+  if(!ids.includes(user.id)){
+    ids.unshift(user.id);
+  }
 
   options(id,[
-    {id:"all",name:shared()?"グループ全員":"すべて"},
-    ...ids.map(x=>({id:x,name:memberName(x)}))
+    {
+      id:"all",
+      name:shared()?"グループ全員":"すべて"
+    },
+    ...ids.map(x=>({
+      id:x,
+      name:memberName(x)
+    }))
   ]);
 }
 
 function renderHome(){
   memberOptions("homeMember");
+
   const list=selectedSessions(V("homeMember"));
+
   $("homeSummary").innerHTML=summaryHTML(list);
 
   $("history").innerHTML=list.map(s=>`
     <div class="item">
-      <span class="pill">${E(sessionSeries(s))}</span>
+      <span class="pill">
+        ${E(sessionSeries(s))}
+      </span>
       ${shared()
-        ?`<span class="pill">${E(memberName(s.user_id))}</span>`
+        ?`<span class="pill">
+            ${E(memberName(s.user_id))}
+          </span>`
         :""}
       <p><b>
         ${E(dateJP(s.played_on))}<br>
@@ -1900,10 +2087,22 @@ function renderHome(){
         ${E(s.notes||"")}
       </p>
       <div class="grid">
-        ${metric("実収支",Y(pProfit(s)),"",F(pProfit(s)))}
-        ${metric("期待値",Y(pEV(s)),"",F(pEV(s)))}
-        ${metric("欠損余剰",Y(pSurplus(s)),"",F(pSurplus(s)))}
-        ${metric("現金投資",Y(s.cash_investment_yen))}
+        ${metric(
+          "実収支",
+          Y(pProfit(s)),"",F(pProfit(s))
+        )}
+        ${metric(
+          "期待値",
+          Y(pEV(s)),"",F(pEV(s))
+        )}
+        ${metric(
+          "欠損余剰",
+          Y(pSurplus(s)),"",F(pSurplus(s))
+        )}
+        ${metric(
+          "現金投資",
+          Y(s.cash_investment_yen)
+        )}
       </div>
       <details>
         <summary>稼働詳細</summary>
@@ -1937,9 +2136,13 @@ function renderHome(){
       ${s.user_id===user?.id?`
         <div class="actions">
           <button class="secondary"
-            data-edit-session="${E(s.id)}">編集</button>
+            data-edit-session="${E(s.id)}">
+            編集
+          </button>
           <button class="danger"
-            data-delete-session="${E(s.id)}">削除</button>
+            data-delete-session="${E(s.id)}">
+            削除
+          </button>
         </div>`:""}
     </div>`).join("")||
     '<p class="muted">稼働記録がありません。</p>';
@@ -1950,15 +2153,26 @@ $("homeMember").onchange=renderHome;
 $("history").onclick=e=>{
   const edit=e.target.closest("[data-edit-session]");
   const del=e.target.closest("[data-delete-session]");
-  if(edit)editSession(edit.dataset.editSession);
-  if(del)deleteSession(del.dataset.deleteSession);
+
+  if(edit){
+    editSession(edit.dataset.editSession);
+  }
+
+  if(del){
+    deleteSession(del.dataset.deleteSession);
+  }
 };
 
 function grouped(list,fn){
   const map=new Map();
+
   for(const s of list){
     const k=String(fn(s)||"未設定");
-    if(!map.has(k))map.set(k,[]);
+
+    if(!map.has(k)){
+      map.set(k,[]);
+    }
+
     map.get(k).push(s);
   }
 
@@ -1966,6 +2180,7 @@ function grouped(list,fn){
     .sort((a,b)=>a[0].localeCompare(b[0],"ja"))
     .map(([name,items])=>{
       const x=summarize(items);
+
       return `<div class="item">
         <b>${E(name)}</b>
         <p class="muted">
@@ -1981,8 +2196,11 @@ function grouped(list,fn){
 
 function curve(list){
   const arr=[...list].sort((a,b)=>
-    String(a.played_on).localeCompare(String(b.played_on))
+    String(a.played_on).localeCompare(
+      String(b.played_on)
+    )
   );
+
   let sum=0;
   const values=[];
 
@@ -1993,34 +2211,52 @@ function curve(list){
     values.push(sum);
   }
 
-  if(!values.length)return "データがありません";
+  if(!values.length){
+    return "データがありません";
+  }
 
-  const W=600,H=180,P=24;
+  const W=600;
+  const H=180;
+  const P=24;
   const lo=Math.min(0,...values);
   const hi=Math.max(0,...values);
   const span=Math.max(1,hi-lo);
+
   const x=i=>P+(W-2*P)*
-    (values.length===1?.5:i/(values.length-1));
+    (values.length===1
+      ?.5
+      :i/(values.length-1));
+
   const y=v=>H-P-(v-lo)/span*(H-2*P);
+
   const path=values.map((v,i)=>
     `${i?"L":"M"}${x(i)},${y(v)}`
   ).join(" ");
 
   return `<svg viewBox="0 0 ${W} ${H}"
     style="background:#f1f8fd;border-radius:12px">
-    <line x1="${P}" x2="${W-P}"
+    <line
+      x1="${P}" x2="${W-P}"
       y1="${y(0)}" y2="${y(0)}"
-      stroke="#9eb8ca" stroke-dasharray="4 4"/>
-    <path d="${path}" fill="none"
-      stroke="#64a6d4" stroke-width="3"/>
+      stroke="#9eb8ca"
+      stroke-dasharray="4 4"
+    />
+    <path
+      d="${path}"
+      fill="none"
+      stroke="#64a6d4"
+      stroke-width="3"
+    />
   </svg>
   <p class="muted">
-    累積欠損余剰：${Y(sum)}／${values.length}件
+    累積欠損余剰：
+    ${Y(sum)}／${values.length}件
   </p>`;
 }
 
 function renderStats(){
   memberOptions("statsMember");
+
   const list=selectedSessions(
     V("statsMember"),
     V("statsCategory"),
@@ -2029,26 +2265,45 @@ function renderStats(){
   );
 
   $("statsSummary").innerHTML=summaryHTML(list);
-  $("statsMonths").innerHTML=grouped(list,
-    s=>String(s.played_on||"").slice(0,7));
-  $("statsMembers").innerHTML=grouped(list,
-    s=>memberName(s.user_id));
+
+  $("statsMonths").innerHTML=grouped(
+    list,
+    s=>String(s.played_on||"").slice(0,7)
+  );
+
+  $("statsMembers").innerHTML=grouped(
+    list,
+    s=>memberName(s.user_id)
+  );
+
   $("statsSeriesGroups").innerHTML=grouped(
-    list,sessionSeries
+    list,
+    sessionSeries
   );
-  $("statsMachines").innerHTML=grouped(list,
-    s=>machine(s.machine_id)?.name||"不明");
-  $("statsStores").innerHTML=grouped(list,
-    s=>s.store_name||"不明");
+
+  $("statsMachines").innerHTML=grouped(
+    list,
+    s=>machine(s.machine_id)?.name||"不明"
+  );
+
+  $("statsStores").innerHTML=grouped(
+    list,
+    s=>s.store_name||"不明"
+  );
+
   $("statsFundingGroups").innerHTML=grouped(
-    list,fundingName
+    list,
+    fundingName
   );
+
   $("statsCurve").innerHTML=curve(list);
 }
 
 for(const id of [
-  "statsMember","statsCategory",
-  "statsSeries","statsFunding"
+  "statsMember",
+  "statsCategory",
+  "statsSeries",
+  "statsFunding"
 ]){
   $(id).onchange=renderStats;
 }
@@ -2057,7 +2312,11 @@ for(const id of [
 async function start(){
   try{
     const {data,error}=await db.auth.getUser();
-    if(error)throw error;
+
+    if(error){
+      throw error;
+    }
+
     user=data.user;
 
     $("auth").classList.toggle("hidden",!!user);
@@ -2085,6 +2344,7 @@ $("login").onclick=async()=>{
       email:V("email"),
       password:V("password")
     }));
+
     await start();
   }catch(e){
     err("globalStatus",e);
@@ -2097,9 +2357,12 @@ $("signup").onclick=async()=>{
       email:V("email"),
       password:V("password")
     }));
-    status("globalStatus",
+
+    status(
+      "globalStatus",
       "登録しました。メール認証が必要な場合は確認してください。",
-      "success");
+      "success"
+    );
   }catch(e){
     err("globalStatus",e);
   }
@@ -2122,19 +2385,27 @@ $("backup").onclick=()=>{
     sharing_groups:groups,
     sharing_group_members:members,
     store_groups:storeGroups,
-    stores,machines,sessions
+    stores,
+    machines,
+    sessions
   };
 
   const blob=new Blob([
     JSON.stringify(payload,null,2)
-  ],{type:"application/json"});
+  ],{
+    type:"application/json"
+  });
 
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
+
   a.href=url;
   a.download="pachinko-backup-"+today()+".json";
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+
+  setTimeout(()=>{
+    URL.revokeObjectURL(url);
+  },1000);
 };
 
 /* 初期化 */
