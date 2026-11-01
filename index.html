@@ -52,6 +52,7 @@ canvas{width:100%;height:180px;display:block}
 </section>
 
 <div id="app" class="hidden">
+
 <section id="home">
 <div class="card">
 <h2>今月の収支</h2>
@@ -141,7 +142,7 @@ canvas{width:100%;height:180px;display:block}
 
 <section id="statsPage" class="hidden">
 <div class="card">
-<h2>収支分析</h2>
+<h2>収支・期待値分析</h2>
 <label>対象月</label>
 <input id="statsMonth" type="month">
 <button id="allMonths" class="secondary mini">全期間を表示</button>
@@ -152,6 +153,7 @@ canvas{width:100%;height:180px;display:block}
 <small id="statsCoverage"></small>
 <h2 style="margin-top:18px">累積実収支と累積期待値</h2>
 <canvas id="cumulativeChart" height="210"></canvas>
+<h2>月別収支グラフ</h2>
 <canvas id="profitChart" height="180"></canvas>
 </div>
 <div class="card"><h2>月別</h2><div id="byMonth"></div></div>
@@ -163,7 +165,9 @@ canvas{width:100%;height:180px;display:block}
 <div class="card">
 <h2>簡易期待値シミュレーション</h2>
 <div class="notice">
-ボーダーと実測回転率からの差分試算です。大当たり出玉、LT、持ち玉比率、交換条件等は織り込んでいません。投資判断には使用しないでください。
+ボーダーと実測回転率からの差分試算です。
+大当たり出玉、LT、持ち玉比率、交換条件等は織り込んでいません。
+投資判断には使用しないでください。
 </div>
 <label>対象機種</label><select id="evMachine"></select>
 <label>ボーダー（250玉あたり）</label>
@@ -205,8 +209,8 @@ canvas{width:100%;height:180px;display:block}
 import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const db=createClient(
-"https://ezhhldztqloffumweklk.supabase.co",
-"sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF"
+ "https://ezhhldztqloffumweklk.supabase.co",
+ "sb_publishable_Pda_4iOi2L4LokHd1jsWNQ_W8QlXxFF"
 );
 
 const el=id=>document.getElementById(id);
@@ -223,8 +227,8 @@ let editingSession=null,editingMachine=null;
 function msg(s){el("message").textContent=s}
 function safe(s){
  return String(s??"").replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",
- '"':"&quot;","'":"&#39;"
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
  })[c]);
 }
 function fail(e){msg(e?.message||"処理に失敗しました")}
@@ -232,11 +236,15 @@ function profit(s){return Number(s.details?.actual_profit_yen)||0}
 function ev(s){
  const v=s.details?.expected_value_yen;
  return v===null||v===undefined||v===""
- ?null
- :(Number.isFinite(Number(v))?Number(v):null);
+  ?null
+  :(Number.isFinite(Number(v))?Number(v):null);
 }
-function evSum(list){return list.reduce((a,s)=>a+(ev(s)??0),0)}
-function coverage(list){return list.filter(s=>ev(s)!==null).length}
+function evSum(list){
+ return list.reduce((a,s)=>a+(ev(s)??0),0);
+}
+function coverage(list){
+ return list.filter(s=>ev(s)!==null).length;
+}
 function evSummary(list){
  const n=coverage(list);
  return n?`${money(evSum(list))}（${n}/${list.length}件）`:"未登録";
@@ -246,6 +254,7 @@ function autoEvValue(border,spins,used,rate){
  const rot=spins/used*250;
  return spins*(250/border-250/rot)*rate;
 }
+
 function updateEvFields(){
  const mode=el("evMode").value;
  el("manualEvFields").classList.toggle("hidden",mode!=="manual");
@@ -260,16 +269,16 @@ function updateEvPreview(){
  }
  if(mode==="manual"){
   el("evPreview").textContent=el("sessionEv").value!==""
-  ?`登録期待値：${money(num("sessionEv"))}`
-  :"期待値を入力してください";
+   ?`登録期待値：${money(num("sessionEv"))}`
+   :"期待値を入力してください";
   return;
  }
  const value=autoEvValue(
   num("autoBorder"),num("spins"),num("ballsIn"),num("autoRate")
  );
  el("evPreview").textContent=value===null
- ?"ボーダー、通常回転数、通常回転用玉数、評価単価を入力してください"
- :`参考期待値：${money(value)}（簡易差分式・正式な期待値ではありません）`;
+  ?"ボーダー、通常回転数、通常回転用玉数、評価単価を入力してください"
+  :`参考期待値：${money(value)}（簡易差分式・正式な期待値ではありません）`;
 }
 el("evMode").onchange=updateEvFields;
 for(const id of ["sessionEv","autoBorder","autoRate","spins","ballsIn"]){
@@ -312,7 +321,9 @@ function render(){
  el("machineSelect").innerHTML=machines.map(m=>
   `<option value="${m.id}">${safe(m.name)}</option>`
  ).join("");
- if(machines.some(m=>m.id===chosen))el("machineSelect").value=chosen;
+ if(machines.some(m=>m.id===chosen)){
+  el("machineSelect").value=chosen;
+ }
 
  el("machineList").innerHTML=machines.map(m=>{
   const used=sessions.some(s=>s.machine_id===m.id);
@@ -344,6 +355,7 @@ function render(){
   const spins=Number(s.normal_spins)||0;
   const rot=used>0?(spins/used*250).toFixed(2):"算出不可";
   const expected=ev(s);
+
   return `<div class="item">
    <b>${safe(s.played_on)} / ${safe(machine?.name||"機種未設定")}</b>
    <div>実収支 ${money(profit(s))} / 通常 ${spins}回転</div>
@@ -375,10 +387,14 @@ function clearSession(){
  el("saveSession").textContent="記録を保存";
  el("cancelSession").classList.add("hidden");
  el("date").value=today();
- for(const id of ["cash","savedBalls","ballsOut","ballsIn","spins"])el(id).value="0";
+ for(const id of ["cash","savedBalls","ballsOut","ballsIn","spins"]){
+  el(id).value="0";
+ }
  el("rate").value="4";
  el("purchaseRate").value="4";
- for(const id of ["store","notes","manualProfit","sessionEv","evSource","autoBorder"])el(id).value="";
+ for(const id of ["store","notes","manualProfit","sessionEv","evSource","autoBorder"]){
+  el(id).value="";
+ }
  el("autoRate").value="4";
  el("evMode").value="none";
  updateEvFields();
@@ -445,6 +461,7 @@ el("saveMachine").onclick=()=>work(el("saveMachine"),async()=>{
  if(!name)throw Error("機種名を入力してください");
  const border=el("border").value===""?null:num("border");
  if(border!==null&&border<=0)throw Error("ボーダーは正の数にしてください");
+
  const payload={
   name,
   manufacturer:el("maker").value.trim(),
@@ -464,6 +481,7 @@ el("saveSession").onclick=()=>work(el("saveSession"),async()=>{
  if(!user)throw Error("ログインしてください");
  if(!el("date").value)throw Error("日付を入力してください");
  if(!el("machineSelect").value)throw Error("機種を登録してください");
+
  for(const id of ["cash","savedBalls","ballsOut","ballsIn","spins"]){
   if(num(id)<0)throw Error("負の数量は入力できません");
  }
@@ -471,17 +489,21 @@ el("saveSession").onclick=()=>work(el("saveSession"),async()=>{
   throw Error("単価は正の数にしてください");
  }
 
- const existing=editingSession?sessions.find(s=>s.id===editingSession):null;
+ const existing=editingSession
+  ?sessions.find(s=>s.id===editingSession):null;
  const rate=num("rate");
  const manual=el("manualProfit").value.trim()!=="";
- const actual=manual?num("manualProfit")
+ const actual=manual
+  ?num("manualProfit")
   :num("ballsOut")*rate-num("cash")-num("savedBalls")*rate;
 
  const evMode=el("evMode").value;
  let expected=null,evInputs=null;
 
  if(evMode==="manual"){
-  if(el("sessionEv").value.trim()==="")throw Error("期待値を入力してください");
+  if(el("sessionEv").value.trim()===""){
+   throw Error("期待値を入力してください");
+  }
   expected=num("sessionEv");
  }
  if(evMode==="auto"){
@@ -490,7 +512,9 @@ el("saveSession").onclick=()=>work(el("saveSession"),async()=>{
   const spins=num("spins");
   const evRate=num("autoRate");
   expected=autoEvValue(border,spins,used,evRate);
-  if(expected===null)throw Error("自動試算に必要な数値を入力してください");
+  if(expected===null){
+   throw Error("自動試算に必要な数値を入力してください");
+  }
   evInputs={
    border,used,spins,rate:evRate,
    formula:"spins*(250/border-250/(spins/used*250))*rate",
@@ -541,9 +565,12 @@ async function deleteRecord(type,id){
  if(!isSession&&sessions.some(s=>s.machine_id===id)){
   return msg("稼働履歴がある機種は削除できません");
  }
- const label=isSession?`${record.played_on}の稼働記録`:`機種「${record.name}」`;
- if(!confirm(`${label}を完全に削除しますか？\nこの操作は取り消せません。`))return;
-
+ const label=isSession
+  ?`${record.played_on}の稼働記録`
+  :`機種「${record.name}」`;
+ if(!confirm(`${label}を完全に削除しますか？\nこの操作は取り消せません。`)){
+  return;
+ }
  await work(el("message"),async()=>{
   const {data,error}=await db.from(isSession?"sessions":"machines")
    .delete().eq("id",id).eq("user_id",user.id).select("id");
@@ -564,24 +591,76 @@ document.addEventListener("click",e=>{
  if(act==="delete-session")deleteRecord("session",id);
 });
 
+/* 店舗別・機種別・月別の期待値集計 */
 function grouped(list,key){
  const m=new Map();
+
  for(const s of list){
   const k=key(s)||"未設定";
-  const v=m.get(k)||{count:0,total:0};
+  const v=m.get(k)||{
+   count:0,
+   total:0,
+   expected:0,
+   evCount:0,
+   manualCount:0,
+   autoCount:0
+  };
+
   v.count++;
   v.total+=profit(s);
+
+  const e=ev(s);
+  if(e!==null){
+   v.expected+=e;
+   v.evCount++;
+
+   if(s.details?.expected_value_mode==="manual"){
+    v.manualCount++;
+   }
+   if(s.details?.expected_value_mode==="auto"){
+    v.autoCount++;
+   }
+  }
   m.set(k,v);
  }
+
  return [...m].sort((a,b)=>b[0].localeCompare(a[0],"ja"));
 }
+
 function groupHtml(arr){
- return arr.map(([k,v])=>`<div class="item">
-  <b>${safe(k)}</b>
-  <div class="${v.total>=0?"positive":"negative"}">
-   ${money(v.total)} <small>(${v.count}件)</small>
-  </div>
- </div>`).join("")||"データがありません";
+ return arr.map(([k,v])=>{
+  const complete=v.count===v.evCount;
+  const difference=v.total-v.expected;
+
+  return `<div class="item">
+   <b>${safe(k)}</b>
+   <div>
+    実収支：
+    <strong class="${v.total>=0?"positive":"negative"}">
+     ${money(v.total)}
+    </strong>
+   </div>
+   <div>
+    登録期待値：
+    ${v.evCount?money(v.expected):"未登録"}
+    <small>(${v.evCount}/${v.count}件)</small>
+   </div>
+   <div>
+    欠損・余剰：
+    ${
+     complete
+     ?`<strong class="${difference>=0?"positive":"negative"}">
+       ${money(difference)}
+      </strong>`
+     :"—（未登録あり）"
+    }
+   </div>
+   <small>
+    稼働 ${v.count}件 /
+    手動 ${v.manualCount}件・簡易自動 ${v.autoCount}件
+   </small>
+  </div>`;
+ }).join("")||"データがありません";
 }
 
 function renderStats(){
@@ -589,6 +668,7 @@ function renderStats(){
  const list=filter
   ?sessions.filter(s=>String(s.played_on||"").startsWith(filter))
   :sessions;
+
  const actual=list.reduce((a,s)=>a+profit(s),0);
 
  el("statsTotal").textContent=money(actual);
@@ -597,28 +677,41 @@ function renderStats(){
  el("statsDiff").textContent=list.length&&coverage(list)===list.length
   ?money(actual-evSum(list))
   :"—（期待値未登録の稼働あり）";
+
  el("statsCoverage").textContent=
   `期待値登録済み ${coverage(list)}/${list.length}件。未登録は0円として扱いません。`;
 
  drawCumulative(list);
+
  const months=grouped(list,s=>String(s.played_on||"").slice(0,7));
  el("byMonth").innerHTML=groupHtml(months);
+
  el("byStore").innerHTML=groupHtml(
-  grouped(list,s=>s.store_name).sort((a,b)=>b[1].total-a[1].total)
+  grouped(list,s=>s.store_name)
+   .sort((a,b)=>b[1].total-a[1].total)
  );
+
  el("byMachine").innerHTML=groupHtml(
-  grouped(list,s=>machines.find(m=>m.id===s.machine_id)?.name||"機種未設定")
-  .sort((a,b)=>b[1].total-a[1].total)
+  grouped(list,s=>
+   machines.find(m=>m.id===s.machine_id)?.name||"機種未設定"
+  ).sort((a,b)=>b[1].total-a[1].total)
  );
- drawChart(months.slice().sort((a,b)=>a[0].localeCompare(b[0])).slice(-12));
+
+ drawChart(
+  months.slice()
+   .sort((a,b)=>a[0].localeCompare(b[0]))
+   .slice(-12)
+ );
 }
 
 function drawCumulative(list){
  const c=el("cumulativeChart");
  const dpr=window.devicePixelRatio||1;
  const w=c.clientWidth||300,h=210;
+
  c.width=Math.round(w*dpr);
  c.height=Math.round(h*dpr);
+
  const ctx=c.getContext("2d");
  ctx.scale(dpr,dpr);
  ctx.clearRect(0,0,w,h);
@@ -627,6 +720,7 @@ function drawCumulative(list){
   String(a.played_on).localeCompare(String(b.played_on))||
   String(a.created_at).localeCompare(String(b.created_at))
  );
+
  if(!sorted.length){
   ctx.fillStyle="#a9b8cb";
   ctx.fillText("データがありません",10,40);
@@ -635,9 +729,11 @@ function drawCumulative(list){
 
  let actual=0,expected=0;
  const aa=[0],ee=[0];
+
  for(const s of sorted){
   actual+=profit(s);
   aa.push(actual);
+
   if(ev(s)!==null){
    expected+=ev(s);
    ee.push(expected);
@@ -647,7 +743,8 @@ function drawCumulative(list){
  }
 
  const vals=[...aa,...ee.filter(v=>v!==null)];
- const max=Math.max(...vals),min=Math.min(...vals);
+ const max=Math.max(...vals);
+ const min=Math.min(...vals);
  const range=Math.max(1,max-min);
  const left=8,right=w-8,top=25,bottom=177;
 
@@ -656,18 +753,30 @@ function drawCumulative(list){
   ctx.lineWidth=2;
   ctx.beginPath();
   let started=false;
+
   arr.forEach((v,i)=>{
-   if(v===null){started=false;return}
+   if(v===null){
+    started=false;
+    return;
+   }
+
    const x=left+(right-left)*i/Math.max(1,arr.length-1);
    const y=bottom-(v-min)/range*(bottom-top);
-   if(!started){ctx.moveTo(x,y);started=true}
-   else ctx.lineTo(x,y);
+
+   if(!started){
+    ctx.moveTo(x,y);
+    started=true;
+   }else{
+    ctx.lineTo(x,y);
+   }
   });
+
   ctx.stroke();
  };
 
  plot(aa,"#79d6ac");
  plot(ee,"#eac77b");
+
  ctx.font="12px sans-serif";
  ctx.fillStyle="#79d6ac";
  ctx.fillText("実収支",10,13);
@@ -681,8 +790,10 @@ function drawChart(arr){
  const c=el("profitChart");
  const dpr=window.devicePixelRatio||1;
  const w=c.clientWidth||300,h=180;
+
  c.width=Math.round(w*dpr);
  c.height=Math.round(h*dpr);
+
  const ctx=c.getContext("2d");
  ctx.scale(dpr,dpr);
  ctx.clearRect(0,0,w,h);
@@ -695,7 +806,8 @@ function drawChart(arr){
  }
 
  const vals=arr.map(x=>x[1].total);
- const max=Math.max(0,...vals),min=Math.min(0,...vals);
+ const max=Math.max(0,...vals);
+ const min=Math.min(0,...vals);
  const range=Math.max(1,max-min);
  const top=18,bottom=155;
  const zero=top+(max/range)*(bottom-top);
@@ -712,8 +824,10 @@ function drawChart(arr){
  arr.forEach(([name,v],i)=>{
   const x=i*slot+(slot-bw)/2;
   const y=top+(max-v.total)/range*(bottom-top);
+
   ctx.fillStyle=v.total>=0?"#79d6ac":"#ff9b9b";
   ctx.fillRect(x,Math.min(y,zero),bw,Math.max(1,Math.abs(y-zero)));
+
   ctx.fillStyle="#cbd5e1";
   ctx.font="10px sans-serif";
   ctx.fillText(name.slice(2),x,174);
@@ -728,11 +842,16 @@ el("allMonths").onclick=()=>{
 
 function renderEvMachines(){
  const old=el("evMachine").value;
+
  el("evMachine").innerHTML=machines.map(m=>
   `<option value="${m.id}">${safe(m.name)}</option>`
  ).join("");
- if(machines.some(m=>m.id===old))el("evMachine").value=old;
- else setEvBorder();
+
+ if(machines.some(m=>m.id===old)){
+  el("evMachine").value=old;
+ }else{
+  setEvBorder();
+ }
 }
 function setEvBorder(){
  const m=machines.find(m=>m.id===el("evMachine").value);
@@ -741,18 +860,24 @@ function setEvBorder(){
 el("evMachine").onchange=setEvBorder;
 
 el("calculateEv").onclick=()=>{
- const b=num("evBorder"),r=num("evRotation");
- const sp=num("evSpins"),rate=num("evRate");
+ const b=num("evBorder");
+ const r=num("evRotation");
+ const sp=num("evSpins");
+ const rate=num("evRate");
+
  if(b<=0||r<=0||sp<=0||rate<=0){
   return msg("期待値試算の数値をすべて正しく入力してください");
  }
+
  const ballDifference=sp*(250/b-250/r);
  const value=ballDifference*rate;
+
  el("evResult").textContent=money(value);
  el("evDetails").textContent=
   `参考差分：${ballDifference.toFixed(1)}玉。`+
   `仮定式＝通常回転数×(250÷ボーダー−250÷実測回転率)×玉評価単価。`+
   `これは収支の期待値を保証する式ではありません。`;
+
  msg("参考試算を更新しました");
 };
 
@@ -760,11 +885,13 @@ function download(name,text,type){
  const blob=new Blob([text],{type});
  const url=URL.createObjectURL(blob);
  const a=document.createElement("a");
+
  a.href=url;
  a.download=name;
  document.body.appendChild(a);
  a.click();
  a.remove();
+
  setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
@@ -781,9 +908,11 @@ el("export").onclick=()=>{
 
 el("exportCsv").onclick=()=>{
  const rows=[
-  ["稼働日","機種","店舗","現金投資","貯玉投資玉数",
+  [
+   "稼働日","機種","店舗","現金投資","貯玉投資玉数",
    "回収玉数","通常回転用玉数","通常回転数",
-   "交換単価","実収支","期待値","期待値方式","欠損余剰","メモ"],
+   "交換単価","実収支","期待値","期待値方式","欠損余剰","メモ"
+  ],
   ...sessions.map(s=>[
    s.played_on,
    machines.find(m=>m.id===s.machine_id)?.name||"",
@@ -801,27 +930,35 @@ el("exportCsv").onclick=()=>{
    s.notes
   ])
  ];
+
  const csv="\ufeff"+rows.map(r=>
   r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")
  ).join("\r\n");
+
  download("pachinko-sessions.csv",csv,"text/csv;charset=utf-8");
 };
 
 async function start(){
  const {data:{user:u}}=await db.auth.getUser();
  user=u;
+
  el("auth").classList.toggle("hidden",!!user);
  el("app").classList.toggle("hidden",!user);
+
  if(user){
   el("userEmail").textContent=user.email||"";
-  try{await refresh()}
-  catch(e){fail(e)}
+  try{
+   await refresh();
+  }catch(e){
+   fail(e);
+  }
  }else{
   machines=[];
   sessions=[];
   msg("メールアドレスでログインしてください");
  }
 }
+
 el("login").onclick=async()=>{
  const {error}=await db.auth.signInWithPassword({
   email:el("email").value.trim(),
@@ -830,6 +967,7 @@ el("login").onclick=async()=>{
  if(error)return fail(error);
  await start();
 };
+
 el("signup").onclick=async()=>{
  const {error}=await db.auth.signUp({
   email:el("email").value.trim(),
@@ -838,6 +976,7 @@ el("signup").onclick=async()=>{
  if(error)return fail(error);
  msg("確認メールを確認してください");
 };
+
 el("logout").onclick=async()=>{
  const {error}=await db.auth.signOut();
  if(error)return fail(error);
@@ -846,7 +985,11 @@ el("logout").onclick=async()=>{
 
 el("date").value=today();
 el("statsMonth").value=today().slice(0,7);
-db.auth.onAuthStateChange(()=>setTimeout(start,0));
+
+db.auth.onAuthStateChange(()=>{
+ setTimeout(start,0);
+});
+
 start();
 </script>
 </body>
