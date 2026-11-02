@@ -777,8 +777,27 @@ $l('liveTimeline').onclick=e=>{const b=e.target.closest('[data-live-delete]');if
 for(const [id,k]of [['liveEndBalls','end'],['liveDeposit','deposit'],['liveReturned','returned'],['liveNotes','notes']])$l(id).addEventListener('input',()=>{state[k]=k==='notes'?$l(id).value:num(id);sync()});
 $l('liveFinish').onclick=()=>{const t=totals();if(!state.events.length){alert('通常回転または大当たりを記録してください');return}if(state.deposit>state.end){alert('貯玉が終了時残玉を超えています');return}if(state.end>balance()){if(!confirm('終了時の残玉が履歴から計算した持ち玉より多くなっています。続行しますか？'))return}sync();$l('sessionStatus').textContent='確認できました。下の「稼働を保存」でクラウドに確定保存してください。';$l('saveSession').scrollIntoView({behavior:'smooth',block:'center'})};
 $l('liveReset').onclick=()=>{if(!confirm('この端末に保存された稼働途中の記録を破棄しますか？'))return;state={events:[],checks:[],checkStart:'',cashBorder:'',heldBorder:'',loanYen:1000,loanBalls:250,loanExchange:4,loanPreset:'4',end:0,deposit:0,returned:0,notes:'',store:'',machine:'',day:''};for(const id of ['lcStart','lcCashBorder','lcHeldBorder','lcCurrent'])ck(id).value='';renderChecks();for(const [id,v]of [['liveEndBalls',0],['liveDeposit',0],['liveReturned',0],['liveNotes','']])$l(id).value=v;sync()};
-// Use existing cloud save button. Draft is only cleared after a successful insert/update is observed in the loaded records.
-const oldSave=$l('saveSession').onclick;$l('saveSession').onclick=async function(...args){const before=JSON.stringify(sessions.map(x=>x.id));await oldSave.apply(this,args);if(JSON.stringify(sessions.map(x=>x.id))!==before || /保存しました|登録しました/.test($l('sessionStatus').textContent)){try{localStorage.removeItem(key)}catch{}state.events=[]}};
+// Reset only AFTER a confirmed successful cloud save. Keep the full draft on errors.
+function clearCompletedLiveSession(){
+ state={...state,events:[],checks:[],checkStart:'',end:0,deposit:0,returned:0,notes:'',store:'',machine:'',day:''};
+ try{localStorage.removeItem(key)}catch{}
+ for(const id of ['lcStart','lcCurrent'])ck(id).value='';
+ for(const [id,v] of [['liveEndBalls','0'],['liveDeposit','0'],['liveReturned','0'],['liveNotes','']])$l(id).value=v;
+ ck('lcError').textContent='';
+ $l('liveEntry').classList.add('live-hidden');
+ renderChecks();sync();
+ $l('liveFinishStatus').textContent='新しい稼働を開始できます。';
+}
+const oldSave=$l('saveSession').onclick;
+$l('saveSession').onclick=async function(...args){
+ if(busy)return;
+ // Avoid accepting a success message from an earlier save.
+ const global=$l('globalStatus');global.textContent='';global.classList.remove('success');
+ await oldSave.apply(this,args);
+ if(global.classList.contains('success')&&global.textContent.trim()==='稼働を保存しました'){
+  clearCompletedLiveSession();
+ }
+};
 // Legacy edit remains available; new sessions use the live workflow.
 const originalShow=show;show=function(page){originalShow(page);$l('sessionsPage').classList.toggle('live-active',page==='sessionsPage'&&!editSessionId);if(page==='sessionsPage'&&!editSessionId){sync()}};
 for(const [id,k]of [['liveEndBalls','end'],['liveDeposit','deposit'],['liveReturned','returned'],['liveNotes','notes']])$l(id).value=state[k];
