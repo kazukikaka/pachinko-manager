@@ -158,7 +158,9 @@ nav button[data-page="sessionsPage"] svg{width:25px;height:25px;stroke-width:2.2
 .stats-menu button b{font-size:15px!important}
 @media(max-width:380px){#home .hero-panel{padding-top:215px!important}#home .hero-title{font-size:23px!important}header small{flex-basis:76px!important;max-width:76px!important}}
 </style>
-</head><body>
+<style id="active-navigator-style">
+.nav-assist{display:flex;gap:12px;align-items:flex-start;padding:14px;margin:12px 0 18px;background:#f8f5fa;border:1px solid #d8d0df;border-radius:16px;color:#33374a}.nav-portrait{flex:0 0 66px;height:80px;border-radius:12px;background-image:var(--navigator-art);background-size:210px auto;background-position:center 19%;border:1px solid #d4cadb}.nav-assist-body{flex:1;min-width:0}.nav-assist-head{font-size:11px;font-weight:800;color:#75607d;letter-spacing:.08em;margin-bottom:6px}.nav-assist-message{font-size:14px;font-weight:650;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.nav-assist button{margin-top:9px;padding:7px 10px;font-size:12px;min-height:0;background:#eee8f2;color:#50445d;border:1px solid #d4c9dc;border-radius:8px}.nav-assist-detail{margin-top:8px;font-size:12px;line-height:1.6;color:#656071}.nav-assist.warning{border-color:#d7a98e;background:#fff8f2}.nav-assist.warning .nav-assist-head{color:#a25c37}
+</style></head><body>
 <header><small>RECORD · GROUP · ANALYSIS</small><h1>パチンコ稼働管理</h1><div class="muted">Your play, our records.</div></header>
 <div id="globalStatus" class="status topstatus"></div>
 <section id="auth" class="card auth auth-illustrated"><div class="login-art" aria-hidden="true"></div><div class="login-brand"><small>PLAY RECORD / NAVIGATOR</small><strong>パチンコ稼働管理</strong></div><div class="login-card"><h2>WELCOME BACK</h2><p class="login-subtitle">あなたの記録を、未来につなぐ。</p><label for="email">メールアドレス</label><input id="email" type="email" autocomplete="email" placeholder="mail@example.com"><label for="password">パスワード</label><input id="password" type="password" autocomplete="current-password" placeholder="パスワードを入力"><button id="login">ログイン</button><button id="signup" class="secondary">新規登録</button></div><p class="login-footer">RECORD YOUR PLAY · READ YOUR FUTURE</p></section>
@@ -512,6 +514,66 @@ $("libraryResults").onclick=e=>{
   if(st)editStore(st.dataset.libraryStore);
 };
 
+
+
+/* ナビゲーター：入力・計算・分析に連動。外部AI送信なし */
+const guideMap={
+ cash:["現金投資を入力してください。","実際に財布から支払った金額です。貯玉再プレイの玉数は含めません。"],
+ cashBalls:["現金で借りた玉数を入力してください。","通常回転に投入した玉数との照合に使います。現金投資額そのものとは別の項目です。"],
+ replay:["貯玉再プレイで使った玉数を入力してください。","現金で借りた玉と区別すると、投資の内訳を確認できます。"],
+ replayFee:["再プレイ手数料があれば入力してください。","手数料がない場合は0のままで構いません。"],
+ openingHeld:["開始時点の持ち玉を入力してください。","当日の途中で獲得した玉とは分けて扱います。"],
+ earnedBalls:["当日獲得した玉数を入力してください。","残玉との整合性確認に使用します。期待値の簡易モデルへ直接は入力されません。"],
+ heldBalls:["通常回転に使った持ち玉を入力してください。","現金借玉・再プレイ分以外に、通常回転で使った玉数です。"],
+ endingHeld:["遊技終了時、手元に残っていた玉を先に入力してください。","この時点では貯玉や換金に回す前の合計です。"],
+ deposit:["残玉のうち貯玉した玉数を入力してください。","残玉から貯玉分を差し引いた数は自動表示します。"],
+ returned:["実際に受け取った換金額を入力してください。","貯玉分の価値を現金回収額に混ぜないようにしてください。"],
+ ballsIn:["通常回転に使用した合計玉数を入力してください。","現金借玉＋再プレイ＋持ち玉使用の合計と一致するか確認します。"],
+ spins:["通常時の回転数を入力してください。","通常消費玉数と組み合わせて回転率を計算し、期待値の簡易モデルに使います。"],
+ evMode:["期待値の計算方法を確認してください。","通常は簡易モデルで自動計算します。手動入力・未登録への変更も可能です。"],
+ manualProfit:["実収支を補正する必要がある場合だけ入力してください。","空欄なら保存時の自動計算を使用します。"],
+ notes:["気づいたことがあれば記録してください。","釘や遊技状況など、次回の判断に役立つ内容がおすすめです。"]};
+function guideBox(id){return `<div class="nav-assist" id="${id}" role="status"><div class="nav-portrait" aria-hidden="true"></div><div class="nav-assist-body"><div class="nav-assist-head">✦ NAVIGATOR</div><div class="nav-assist-message">入力を案内します。</div><button type="button" aria-expanded="false">詳しく見る</button><div class="nav-assist-detail hidden"></div></div></div>`}
+const sessionCard=document.querySelector('#sessionsPage .card');sessionCard.querySelector('h2').insertAdjacentHTML('afterend',guideBox('sessionGuide'));
+document.querySelector('#home .hero-panel').insertAdjacentHTML('afterend',guideBox('homeGuide'));
+let currentGuideField='';
+function setGuide(id,message,detail='',warning=false){const el=$(id);if(!el)return;el.classList.toggle('warning',warning);el.querySelector('.nav-assist-message').textContent=message;el.querySelector('.nav-assist-detail').textContent=detail;el.querySelector('button').classList.toggle('hidden',!detail);el.querySelector('.nav-assist-detail').classList.add('hidden');el.querySelector('button').setAttribute('aria-expanded','false')}
+for(const id of ['sessionGuide','homeGuide'])$(id).querySelector('button').onclick=()=>{const el=$(id),d=el.querySelector('.nav-assist-detail'),open=d.classList.toggle('hidden');el.querySelector('button').textContent=open?'詳しく見る':'閉じる';el.querySelector('button').setAttribute('aria-expanded',String(!open))};
+function guideSession(field=''){
+ const get=id=>Number($(id)?.value||0),sum=get('cashBalls')+get('replay')+get('heldBalls'),used=get('ballsIn'),end=get('endingHeld'),dep=get('deposit');
+ let msg='',detail='',warning=false;
+ if(dep>end){msg=`貯玉 ${dep.toLocaleString()}玉が、終了時の残玉 ${end.toLocaleString()}玉を超えています。`;detail='まず終了時の残玉を確認し、その範囲で貯玉数を入力してください。';warning=true}
+ else if(used>0&&sum!==used){msg=`通常回転の投入内訳と消費玉数に ${(used-sum).toLocaleString()}玉の差があります。`;detail=`内訳 ${sum.toLocaleString()}玉／通常消費 ${used.toLocaleString()}玉。入力漏れがないか確認してください。`;warning=true}
+ else if(field&&guideMap[field]){[msg,detail]=guideMap[field];if(field==='deposit'&&end>0)msg+=` 貯玉後の残りは ${(end-dep).toLocaleString()}玉です。`}
+ else{msg='稼働内容を入力すると、項目ごとに案内します。';detail='入力欄をタップすると、その数値の意味と計算での用途を確認できます。'}
+ if(!warning&&used>0&&get('spins')>0&&$('evMode').value==='model'){
+ const st=store(V('sessionRate')),x=postEV({m:machine(V('sessionMachine')),spins:get('spins'),ballsIn:used,cash:get('cash'),replay:get('replay'),held:get('heldBalls'),fee:get('replayFee'),q:Number(st?.exchange_rate)});
+ if(x){detail+=(detail?'\n':'')+`現在の実測回転率：${x.rotation.toFixed(2)}回/250玉。簡易期待値：${Y(x.ev)}。`;if(field==='spins'||field==='ballsIn'||!field)msg=`計算できました。実測 ${x.rotation.toFixed(2)}回/250玉、簡易期待値は ${Y(x.ev)} です。`}
+ }
+ setGuide('sessionGuide',msg,detail,warning)
+}
+for(const id of Object.keys(guideMap)){
+ const el=$(id);if(!el)continue;
+ el.addEventListener('focus',()=>{currentGuideField=id;guideSession(id)});
+ el.addEventListener('input',()=>guideSession(currentGuideField||id));
+ el.addEventListener('change',()=>guideSession(currentGuideField||id));
+}
+for(const id of ['sessionRate','sessionMachine','sessionSeries'])$(id)?.addEventListener('change',()=>guideSession(currentGuideField));
+function guideHome(){
+ const list=selectedSessions(V('homeMember')),stats=summarize(list);
+ if(!list.length){setGuide('homeGuide','まだ稼働記録がありません。まずは稼働前シミュレーターで条件を確認しましょう。','稼働後は入力画面で記録すると、実収支と期待値を追跡できます。');return}
+ const latest=list[0],actual=pProfit(latest),ev=pEV(latest),diff=pSurplus(latest);
+ let msg=`記録は ${stats.count}件。累計実収支 ${Y(stats.profit)}、累計期待値 ${Y(stats.ev)} です。`;
+ let detail=`直近の稼働：${dateJP(latest.played_on)}。`;
+ if(diff!==null){detail+=`直近の実収支 ${Y(actual)}、期待値 ${Y(ev)}。`;detail+=diff>0?`期待値に対して ${Y(diff)} の上振れです。`:diff<0?`期待値に対して ${Y(-diff)} の下振れです。`:'実収支と期待値が一致しています。'}
+ else detail+='直近の稼働では実収支・期待値の両方がそろっていないため、差額評価は行いません。';
+ setGuide('homeGuide',msg,detail)
+}
+$('homeMember').addEventListener('change',guideHome);
+for(const b of document.querySelectorAll('[data-page]'))b.addEventListener('click',()=>{if(b.dataset.page==='sessionsPage')guideSession();if(b.dataset.page==='home')guideHome()});
+$('saveSession').addEventListener('click',()=>guideSession(currentGuideField));
+const originalRenderHome=renderHome;renderHome=function(){originalRenderHome();guideHome()};
+guideSession();guideHome();
 
 show("home");start();
 </script></body></html>
