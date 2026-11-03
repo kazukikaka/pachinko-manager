@@ -205,7 +205,7 @@ body:not(.guide-sessions) #guideLauncher,body:not(.guide-sessions) #guidePopup{d
 <button type="button" id="seriesModeNew" class="secondary" aria-pressed="false">＋ 新規シリーズ</button></div>
 <div id="seriesExistingBox"><label for="machineSeriesSelect">登録済みシリーズ</label><select id="machineSeriesSelect"></select></div>
 <div id="seriesNewBox" class="hidden"><label for="machineSeriesNew">新しいシリーズ名</label><input id="machineSeriesNew" placeholder="例：エヴァンゲリオン" autocomplete="off"><p class="muted" id="seriesNameNotice">同じシリーズが既にあれば、既存の登録を選択してください。</p></div>
-<div id="seriesChoiceNote" class="muted">シリーズ名を統一して機種を整理します。</div></div><label>機種名</label><input id="machineName"><label>メーカー</label><input id="machineMaker"><label>初当たり確率の分母</label><input id="machineProbability" type="number" min=".001" step="any"><label>平均TY（純増差玉）</label><input id="machineTy" type="number" min=".001" step="any"><p id="machineBorder" class="muted">理論ボーダー：—</p><button id="saveMachine">機種を保存</button><button id="cancelMachine" class="secondary hidden">編集を中止</button><div id="machineStatus" class="status"></div></div><div class="card"><h2>機種一覧</h2><p class="muted">「コピーして登録」なら、メーカー・初当たり確率・平均TYを引き継いで別機種を作れます。元の機種は変更されません。</p><label>シリーズで絞り込み</label><select id="machineFilter"></select><div id="machineList"></div></div></section>
+<div id="seriesChoiceNote" class="muted">シリーズ名を統一して機種を整理します。</div></div><label>機種名</label><input id="machineName"><label>メーカー</label><input id="machineMaker"><label>初当たり確率の分母</label><input id="machineProbability" type="number" min=".001" step="any"><label>平均TY（純増差玉）</label><input id="machineTy" type="number" min=".001" step="any"><p id="machineBorder" class="muted">理論ボーダー：—</p><button id="saveMachine">機種を保存</button><button id="cancelMachine" class="secondary hidden">編集を中止</button><div id="machineStatus" class="status"></div></div><div class="card" id="seriesManageCard"><h2>登録済みシリーズの管理</h2><p class="muted">シリーズ名を変更すると、そのシリーズの機種すべてに反映します。稼働履歴は削除しません。</p><label for="seriesManageSelect">編集・削除するシリーズ</label><select id="seriesManageSelect"></select><label for="seriesManageName">変更後のシリーズ名</label><input id="seriesManageName" placeholder="新しいシリーズ名" autocomplete="off"><div class="actions"><button type="button" id="renameSeries" class="secondary">シリーズ名を一括変更</button><button type="button" id="deleteSeries" class="danger">シリーズを削除</button></div><p class="muted">削除は、そのシリーズ内の機種に稼働履歴がない場合に限ります。履歴がある場合は削除できません。</p><div id="seriesManageStatus" class="status" role="status"></div></div><div class="card"><h2>機種一覧</h2><p class="muted">稼働履歴がある機種は削除できません。誤登録した未使用の機種だけ削除できます。</p><p class="muted">「コピーして登録」なら、メーカー・初当たり確率・平均TYを引き継いで別機種を作れます。元の機種は変更されません。</p><label>シリーズで絞り込み</label><select id="machineFilter"></select><div id="machineList"></div></div></section>
 <section id="storesPage" class="page hidden"><div class="card"><h2 id="storeHeading">店舗登録</h2><label>店舗名</label><input id="storeName"><div id="rateEditors"></div><button id="addRate" class="secondary">＋ 貸玉レート追加</button><button id="saveStore">店舗を保存</button><button id="cancelStore" class="secondary hidden">編集を中止</button><div id="storeStatus" class="status"></div></div><div class="card"><h2>店舗一覧</h2><div id="storeList"></div></div></section>
 <section id="beforePage" class="page hidden"><div class="card"><h2>稼働前・必要回転率</h2><label>店舗</label><select id="beforeGroup"></select><label>貸玉レート</label><select id="beforeRate"></select><label>シリーズ</label><select id="beforeSeries"></select><label>機種</label><select id="beforeMachine"></select><label>稼働時間（時間）</label><input id="beforeHours" type="number" value="8" step=".5"><label>通常時の消化速度（回/時）</label><input id="beforeSpeed" type="number" value="200" step="any"><label>初当たり1回あたりの平均消化時間（分）</label><input id="beforeHitMinutes" type="number" value="20" step="any"><label>投資方法</label><select id="beforeFunding"><option value="cash">現金</option><option value="replay">貯玉のみ</option><option value="mixed">貯玉＋現金</option></select><div id="beforeReplayWrap" class="hidden"><label>今回使用できる貯玉（玉）</label><input id="beforeReplayAvailable" type="number" value="2280"></div><label>稼働開始時の持ち玉（玉）</label><input id="beforeHeld" type="number" value="0"><label>目標期待値（円）</label><input id="beforeTarget" type="number" value="10000"><button id="calculateBefore">必要回転率を計算</button><div id="beforeResult"></div><button type="button" id="simStart" class="secondary">この台で稼働開始・回転率チェックへ</button></div></section>
 <style id="live-record-css">
@@ -381,11 +381,82 @@ $("saveMachine").onclick=async()=>{
   await load();resetMachine();status("machineStatus","機種を保存しました","success");
  }catch(e){err("machineStatus",e)}finally{busy=false}
 };
+function canManageMachineRecord(m){return !!m && (m.group_id ? m.group_id===scope&&canEdit(m.group_id) : scope==="personal"&&m.user_id===user?.id)}
+function renderSeriesManager(){
+ const names=seriesNames().filter(x=>x!=="未分類");
+ const select=$("seriesManageSelect"),prev=select.value;
+ options("seriesManageSelect",names.map(n=>({id:n,name:n})),prev);
+ $("seriesManageCard").classList.toggle("hidden",!names.length);
+ const permitted=!shared()||canEdit(scope);
+ $("renameSeries").disabled=!permitted;
+ $("deleteSeries").disabled=!permitted;
+ if(!select.dataset.bound){select.addEventListener("change",()=>{$("seriesManageName").value=select.value;status("seriesManageStatus","")});select.dataset.bound="1";}
+ $("seriesManageName").value=select.value;
+}
+function machinesForSeries(name){return visibleMachines().filter(m=>series(m)===name)}
+function seriesHasSessions(ids){const set=new Set(ids);return sessions.some(s=>set.has(s.machine_id))}
+$("renameSeries").onclick=async()=>{
+ if(busy)return;
+ const old=V("seriesManageSelect"),next=V("seriesManageName").normalize("NFKC").replace(/[\s　]+/g," ").trim();
+ try{
+  if(!old||old==="未分類")throw Error("変更するシリーズを選択してください");
+  if(!next)throw Error("変更後のシリーズ名を入力してください");
+  if(normalizedSeries(next)===normalizedSeries(old)&&next===old)throw Error("変更前と同じシリーズ名です");
+  const target=machinesForSeries(old),ids=target.map(m=>m.id);
+  if(!ids.length)throw Error("対象機種がありません");
+  if(!target.every(canManageMachineRecord))throw Error("対象の機種をすべて編集できる権限が必要です");
+  const other=seriesNames().find(n=>n!==old&&normalizedSeries(n)===normalizedSeries(next));
+  if(other){
+   const already=new Set(machinesForSeries(other).map(m=>normalizedSeries(m.name)));
+   if(target.some(m=>already.has(normalizedSeries(m.name))))throw Error("移動先のシリーズに同名の機種があります。重複を解消してから変更してください");
+   if(!confirm(`既存の「${other}」シリーズへ${ids.length}機種を統合しますか？`))return;
+  }else if(!confirm(`「${old}」を「${next}」に変更しますか？\n対象：${ids.length}機種\n稼働履歴はそのまま残ります。`))return;
+  busy=true;
+  let q=db.from("machines").update({series_name:other||next}).in("id",ids);
+  if(shared())q=q.eq("group_id",scope);else q=q.eq("user_id",user.id).is("group_id",null);
+  const updated=check(await q.select("id"));
+  if(updated.length!==ids.length)throw Error(`対象${ids.length}件中${updated.length}件のみ更新されました。再読み込みして確認してください`);
+  await load();$("seriesManageSelect").value=other||next;$("seriesManageName").value=other||next;
+  status("seriesManageStatus",`シリーズ名を変更しました（${ids.length}機種）`,"success");
+ }catch(e){err("seriesManageStatus",e)}finally{busy=false}
+};
+async function deleteMachine(id){
+ if(busy)return;
+ const m=machine(id);
+ try{
+  if(!canManageMachineRecord(m))throw Error("この機種を削除する権限がありません");
+  if(seriesHasSessions([id]))throw Error("この機種には稼働履歴があります。履歴を残すため削除できません。機種名を編集するか、履歴を確認してください");
+  if(!confirm(`「${m.name}」を削除しますか？\nこの操作は取り消せません。`))return;
+  busy=true;
+  let q=db.from("machines").delete().eq("id",id);
+  if(shared())q=q.eq("group_id",scope);else q=q.eq("user_id",user.id).is("group_id",null);
+  const removed=check(await q.select("id"));if(removed.length!==1)throw Error("削除されませんでした。権限を確認してください");
+  if(editMachineId===id)resetMachine();await load();status("machineStatus","機種を削除しました","success");
+ }catch(e){err("machineStatus",e);alert("機種を削除できません："+(e?.message||String(e)))}finally{busy=false}
+}
+$("deleteSeries").onclick=async()=>{
+ if(busy)return;
+ const name=V("seriesManageSelect"),target=machinesForSeries(name),ids=target.map(m=>m.id);
+ try{
+  if(!name||!ids.length)throw Error("シリーズを選択してください");
+  if(!target.every(canManageMachineRecord))throw Error("シリーズ内のすべての機種の削除権限が必要です");
+  if(seriesHasSessions(ids))throw Error("このシリーズの機種に稼働履歴があります。履歴を守るためシリーズごと削除できません。シリーズ名の変更は可能です");
+  if(!confirm(`「${name}」と所属する${ids.length}機種をすべて削除しますか？\n元には戻せません。`))return;
+  if(prompt(`最終確認：削除する場合は「削除」と入力してください`)!=="削除")return;
+  busy=true;
+  let q=db.from("machines").delete().in("id",ids);
+  if(shared())q=q.eq("group_id",scope);else q=q.eq("user_id",user.id).is("group_id",null);
+  const deleted=check(await q.select("id"));if(deleted.length!==ids.length)throw Error("一部の機種が削除されませんでした。再読み込みして確認してください");
+  await load();status("seriesManageStatus",`「${name}」を削除しました`,"success");
+ }catch(e){err("seriesManageStatus",e);alert("シリーズを削除できません："+(e?.message||String(e)))}finally{busy=false}
+};
 function renderMachines(){
+ renderSeriesManager();
  const selected=V("machineFilter")||"all";
- $("machineList").innerHTML=seriesNames().filter(s=>selected==="all"||selected===s).map(s=>`<div class="seriesbox"><div class="serieshead">${E(s)}</div>${visibleMachines().filter(m=>series(m)===s).map(m=>`<div class="item"><b>${E(m.name)}</b><p class="muted">メーカー：${E(m.manufacturer||"—")}<br>初当たり：1/${E(m.jackpot_denominator)}<br>TY：${E(m.average_ty_balls)}玉</p>${(!m.group_id||canEdit(m.group_id))?`<button class="secondary" data-edit-machine="${E(m.id)}">編集</button><button class="machine-copy-button" data-copy-machine="${E(m.id)}">＋ コピーして登録</button>`:""}</div>`).join("")}</div>`).join("")||"機種がありません";
+ $("machineList").innerHTML=seriesNames().filter(s=>selected==="all"||selected===s).map(s=>`<div class="seriesbox"><div class="serieshead">${E(s)}</div>${visibleMachines().filter(m=>series(m)===s).map(m=>`<div class="item"><b>${E(m.name)}</b><p class="muted">メーカー：${E(m.manufacturer||"—")}<br>初当たり：1/${E(m.jackpot_denominator)}<br>TY：${E(m.average_ty_balls)}玉</p>${canManageMachineRecord(m)?`<button class="secondary" data-edit-machine="${E(m.id)}">編集</button><button class="machine-copy-button" data-copy-machine="${E(m.id)}">＋ コピーして登録</button><button class="danger" data-delete-machine="${E(m.id)}">機種を削除</button>`:""}</div>`).join("")}</div>`).join("")||"機種がありません";
 }
 $("machineList").onclick=e=>{
+ const del=e.target.closest("[data-delete-machine]");if(del){deleteMachine(del.dataset.deleteMachine);return}
  const copy=e.target.closest("[data-copy-machine]");if(copy){copyMachine(copy.dataset.copyMachine);return}
  const b=e.target.closest("[data-edit-machine]");if(b)editMachine(b.dataset.editMachine);
 };
